@@ -18,7 +18,8 @@
     --border:#dde1ea;
   }
   *{ box-sizing:border-box; }
-  html,body{ margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+  html,body{ margin:0; padding:0; overflow-x:hidden; }
   body{
     font-family:'Sarabun', sans-serif;
     background:#eef0f3;
@@ -81,7 +82,7 @@
   }
   .tab-btn.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
 
-  .drawer-panel{ padding:16px; overflow-y:auto; flex:1; }
+  .drawer-panel{ padding:16px; overflow-y:auto; flex:1; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
   .drawer-panel.hidden{ display:none; }
 
   .panel-label{ font-size:12.5px; font-weight:700; color:#6b7488; margin:0 0 8px; text-transform:uppercase; letter-spacing:.03em; }
@@ -129,6 +130,13 @@
   .avg-box input:focus{ border-color:var(--accent); }
 
   .divider{ height:1px; background:var(--border); margin:16px 0; }
+
+  .preview-line{
+    font-size:12.5px; color:#4b5468; background:var(--panel);
+    border:1px dashed var(--border); border-radius:8px;
+    padding:8px 10px; margin:-4px 0 14px; min-height:16px;
+  }
+  .preview-line.ok{ color:var(--ok); border-color:var(--ok); background:#f0f8f2; }
 
   /* ---------- Sheet (matches receipt-book page size) ---------- */
   .sheet-wrap{
@@ -186,11 +194,12 @@
   }
   td.desc input{ text-align:left; }
   td.amount input{ text-align:right; padding-right:8px; }
+  input.date-input{ cursor:pointer; }
   col.date{ width:16%; }
   col.desc{ width:44%; }
   col.amount{ width:20%; }
   col.remark{ width:20%; }
-  .table-wrap{ overflow-x:auto; }
+  .table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
 
   .bahttext-row{ display:flex; justify-content:center; margin-top:10px; }
   .bahttext-box{
@@ -218,7 +227,7 @@
 
   .sign-block{ margin-top:22px; font-size:12px; }
   .sign-slot{ margin-bottom:18px; }
-  .sign-space{ height:46px; border-bottom:1.6px solid var(--line); margin-bottom:6px; }
+  .sign-space{ height:30px; border-bottom:1.5px solid var(--line); margin-bottom:6px; }
   .sign-slot .fill{
     border:none; border-bottom:1px dotted var(--line); background:transparent;
     font-family:inherit; font-size:12px; outline:none; padding:2px 3px;
@@ -288,6 +297,39 @@
 
     <div class="divider"></div>
     <button class="wide-btn random" onclick="randomizeOneItem()">🎲 สุ่มรายการ (ทีละแถว)</button>
+
+    <div class="divider"></div>
+    <p class="panel-label">เลือกวันที่ลัด</p>
+    <div class="chip-grid">
+      <button class="chip-btn" onclick="quickSetDate(0)">วันนี้</button>
+      <button class="chip-btn" onclick="quickSetDate(1)">เมื่อวาน</button>
+      <button class="chip-btn" onclick="quickSetDate(2)">2 วันก่อน</button>
+      <button class="chip-btn" onclick="quickSetDate(3)">3 วันก่อน</button>
+      <button class="chip-btn" onclick="quickSetDate(7)">7 วันก่อน</button>
+    </div>
+    <div class="custom-add">
+      <input type="date" id="customDate">
+      <button class="chip-btn" onclick="quickSetCustomDate()">ใส่</button>
+    </div>
+    <div class="preview-line" id="datePreview">แตะปุ่มลัดหรือเลือกวันที่ เพื่อใส่ในแถวว่างถัดไป</div>
+
+    <div class="divider"></div>
+    <p class="panel-label">ใส่จำนวนเงินลัด</p>
+    <div class="chip-grid">
+      <button class="chip-btn" onclick="quickAmount(20)">20 บาท</button>
+      <button class="chip-btn" onclick="quickAmount(50)">50 บาท</button>
+      <button class="chip-btn" onclick="quickAmount(100)">100 บาท</button>
+      <button class="chip-btn" onclick="quickAmount(150)">150 บาท</button>
+      <button class="chip-btn" onclick="quickAmount(200)">200 บาท</button>
+      <button class="chip-btn" onclick="quickAmount(300)">300 บาท</button>
+      <button class="chip-btn" onclick="quickAmount(500)">500 บาท</button>
+      <button class="chip-btn" onclick="quickAmount(1000)">1,000 บาท</button>
+    </div>
+    <div class="custom-add">
+      <input type="number" step="0.01" id="customAmount" placeholder="ใส่จำนวนเอง..." oninput="previewCustomAmount()">
+      <button class="chip-btn" onclick="quickAmountCustom()">เพิ่ม</button>
+    </div>
+    <div class="preview-line" id="amountPreview">พิมพ์หรือแตะปุ่มลัด จะโชว์ตัวอย่างยอดเป็นตัวอักษรตรงนี้</div>
   </div>
 
   <div class="drawer-panel hidden" id="panel-tools">
@@ -407,7 +449,7 @@ function todayISO(){
 function makeRow(){
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><input type="date" class="date-input" value="${todayISO()}" max="${todayISO()}"></td>
+    <td><input type="text" class="date-input" value="" placeholder="" readonly onclick="openDrawer(); switchTab('items');"></td>
     <td class="desc"><input type="text" placeholder=""></td>
     <td class="amount"><input type="number" step="0.01" placeholder="" oninput="updateTotal()"></td>
     <td><input type="text" placeholder=""></td>
@@ -518,6 +560,79 @@ function quickAddCustom(){
   if(val === '') { box.focus(); return; }
   insertItem(val);
   box.value = '';
+}
+
+/* ---------- Quick date insert (no auto-fill; explicit pick only) ---------- */
+function insertDate(isoDate){
+  const dateInputs = tbody.querySelectorAll('td .date-input');
+  let target = null;
+  dateInputs.forEach(inp=>{ if(!target && inp.value.trim()==='') target = inp; });
+  if(!target){
+    makeRow();
+    const all = tbody.querySelectorAll('td .date-input');
+    target = all[all.length-1];
+  }
+  const label = new Date(isoDate + 'T00:00:00').toLocaleDateString('th-TH-u-ca-buddhist', {day:'2-digit', month:'2-digit', year:'numeric'});
+  target.value = label;
+  document.getElementById('datePreview').textContent = `ใส่วันที่ ${label} ในแถวว่างถัดไปแล้ว`;
+  document.getElementById('datePreview').classList.add('ok');
+}
+
+function quickSetDate(offsetDays){
+  const d = new Date();
+  d.setDate(d.getDate() - offsetDays);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  insertDate(`${yyyy}-${mm}-${dd}`);
+}
+
+function quickSetCustomDate(){
+  const box = document.getElementById('customDate');
+  if(!box.value){ box.focus(); return; }
+  insertDate(box.value);
+}
+
+/* ---------- Quick amount insert with live baht-text preview ---------- */
+function insertAmount(value){
+  const amountInputs = tbody.querySelectorAll('td.amount input');
+  let target = null;
+  amountInputs.forEach(inp=>{ if(!target && inp.value.trim()==='') target = inp; });
+  if(!target){
+    makeRow();
+    const all = tbody.querySelectorAll('td.amount input');
+    target = all[all.length-1];
+  }
+  target.value = value.toFixed(2);
+  updateTotal();
+  const formatted = value.toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('amountPreview').textContent = `ใส่ ${formatted} บาท (${thaiBahtText(value)}) ในแถวว่างถัดไปแล้ว`;
+  document.getElementById('amountPreview').classList.add('ok');
+}
+
+function quickAmount(value){
+  insertAmount(value);
+}
+
+function quickAmountCustom(){
+  const box = document.getElementById('customAmount');
+  const v = parseFloat(box.value);
+  if(isNaN(v) || v <= 0){ box.focus(); return; }
+  insertAmount(v);
+  box.value = '';
+}
+
+function previewCustomAmount(){
+  const box = document.getElementById('customAmount');
+  const v = parseFloat(box.value);
+  const preview = document.getElementById('amountPreview');
+  preview.classList.remove('ok');
+  if(isNaN(v) || v <= 0){
+    preview.textContent = 'พิมพ์หรือแตะปุ่มลัด จะโชว์ตัวอย่างยอดเป็นตัวอักษรตรงนี้';
+    return;
+  }
+  const formatted = v.toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
+  preview.textContent = `ตัวอย่าง: ${formatted} บาท (${thaiBahtText(v)})`;
 }
 
 /* ---------- Totals ---------- */
