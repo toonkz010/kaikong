@@ -2,6 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ใบรับรองแทนใบเสร็จรับเงิน</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -9,288 +10,366 @@
   :root{
     --ink:#1c2a4a;
     --line:#5b6b95;
-    --paper:#dfe9e4;
-    --paper-edge:#c9d8d1;
-    --accent:#3d5a99;
-    --accent-soft:#e7edf7;
+    --accent:#2f4b8c;
+    --accent-dark:#1c2a4a;
+    --danger:#a33333;
+    --ok:#2f6e46;
+    --panel:#f5f6f8;
+    --border:#dde1ea;
   }
-  *{box-sizing:border-box;}
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
   body{
     font-family:'Sarabun', sans-serif;
-    background:#eef1f0;
-    margin:0;
-    padding:24px 12px 60px;
+    background:#eef0f3;
     color:var(--ink);
+    padding-bottom:40px;
   }
-  .toolbar{
-    max-width:900px;
-    margin:0 auto 16px;
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-    align-items:center;
-  }
-  .toolbar .label{
-    font-weight:600;
-    font-size:14px;
-    margin-right:4px;
-    color:#33415e;
-  }
-  .quick-btn{
-    border:1.5px solid var(--accent);
-    background:#fff;
-    color:var(--accent);
-    padding:8px 16px;
-    border-radius:20px;
-    font-family:inherit;
-    font-size:14px;
-    font-weight:600;
-    cursor:pointer;
-    transition:all .15s ease;
-  }
-  .quick-btn:hover{ background:var(--accent); color:#fff; }
-  .quick-btn:active{ transform:scale(0.97); }
-  .actions{
-    max-width:900px;
-    margin:0 auto 16px;
-    display:flex;
-    gap:10px;
-    justify-content:flex-end;
-  }
-  .action-btn{
-    border:none;
-    padding:9px 18px;
-    border-radius:6px;
-    font-family:inherit;
-    font-size:14px;
-    font-weight:600;
-    cursor:pointer;
-  }
-  .btn-print{ background:var(--accent); color:#fff; }
-  .btn-clear{ background:#fff; color:#a33; border:1.5px solid #a33; }
-  .btn-addrow{ background:#fff; color:var(--accent); border:1.5px solid var(--accent); }
 
-  .sheet{
-    max-width:900px;
-    margin:0 auto;
-    background:var(--paper);
-    border:1px solid var(--paper-edge);
-    padding:34px 38px 28px;
-    box-shadow:0 4px 18px rgba(0,0,0,0.12);
+  /* ---------- Top bar ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:20;
+    background:#fff; border-bottom:1px solid var(--border);
+    box-shadow:0 1px 4px rgba(0,0,0,0.06);
   }
-  .header{ text-align:center; margin-bottom:14px; }
-  .h-title{ font-size:22px; font-weight:700; margin:0 0 2px; }
-  .h-shop{ font-size:26px; font-weight:700; color:var(--accent); margin:2px 0 8px; }
+  .topbar-inner{
+    max-width:640px; margin:0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 14px;
+  }
+  .topbar-title{ font-size:15px; font-weight:700; color:var(--accent-dark); }
+  .menu-btn{
+    display:flex; align-items:center; gap:6px;
+    border:1.5px solid var(--accent); background:#fff; color:var(--accent);
+    font-family:inherit; font-weight:600; font-size:14px;
+    padding:7px 14px; border-radius:20px; cursor:pointer;
+  }
+  .menu-btn:active{ transform:scale(0.97); }
+
+  /* ---------- Drawer ---------- */
+  .backdrop{
+    position:fixed; inset:0; background:rgba(20,25,40,0.4);
+    opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:30;
+  }
+  .backdrop.open{ opacity:1; pointer-events:auto; }
+
+  .drawer{
+    position:fixed; top:0; right:0; height:100%; width:340px; max-width:88vw;
+    background:#fff; z-index:40; box-shadow:-6px 0 24px rgba(0,0,0,0.18);
+    transform:translateX(100%); transition:transform .25s ease;
+    display:flex; flex-direction:column;
+  }
+  .drawer.open{ transform:translateX(0); }
+  .drawer-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 16px 10px; border-bottom:1px solid var(--border);
+  }
+  .drawer-head span{ font-weight:700; font-size:16px; color:var(--accent-dark); }
+  .drawer-close{
+    border:none; background:none; font-size:18px; cursor:pointer; color:var(--ink);
+    width:32px; height:32px; border-radius:50%;
+  }
+  .drawer-close:hover{ background:var(--panel); }
+
+  .drawer-tabs{
+    display:flex; gap:6px; padding:10px 16px; border-bottom:1px solid var(--border);
+  }
+  .tab-btn{
+    flex:1; padding:9px 10px; border-radius:8px; border:1.5px solid var(--border);
+    background:#fff; font-family:inherit; font-size:13.5px; font-weight:600;
+    color:#5a6479; cursor:pointer;
+  }
+  .tab-btn.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+  .drawer-panel{ padding:16px; overflow-y:auto; flex:1; }
+  .drawer-panel.hidden{ display:none; }
+
+  .panel-label{ font-size:12.5px; font-weight:700; color:#6b7488; margin:0 0 8px; text-transform:uppercase; letter-spacing:.03em; }
+
+  .chip-grid{
+    display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;
+  }
+  .chip-btn{
+    border:1.5px solid var(--accent); background:#fff; color:var(--accent);
+    padding:7px 13px; border-radius:18px; font-family:inherit; font-size:13.5px;
+    font-weight:600; cursor:pointer;
+  }
+  .chip-btn:hover{ background:var(--accent); color:#fff; }
+  .chip-btn:active{ transform:scale(0.96); }
+
+  .custom-add{ display:flex; gap:8px; margin-bottom:16px; }
+  .custom-add input{
+    flex:1; border:1.5px solid var(--border); border-radius:18px;
+    padding:8px 14px; font-family:inherit; font-size:13.5px; outline:none;
+  }
+  .custom-add input:focus{ border-color:var(--accent); }
+
+  .wide-btn{
+    width:100%; display:block; text-align:center;
+    border:1.5px solid var(--accent); background:#fff; color:var(--accent);
+    font-family:inherit; font-size:14px; font-weight:700;
+    padding:11px 14px; border-radius:10px; cursor:pointer; margin-bottom:12px;
+  }
+  .wide-btn:hover{ background:var(--accent); color:#fff; }
+  .wide-btn.random{ border-color:var(--ok); color:var(--ok); }
+  .wide-btn.random:hover{ background:var(--ok); color:#fff; }
+  .wide-btn.danger{ border-color:var(--danger); color:var(--danger); }
+  .wide-btn.danger:hover{ background:var(--danger); color:#fff; }
+  .wide-btn.primary{ background:var(--accent); color:#fff; }
+  .wide-btn.primary:hover{ background:var(--accent-dark); }
+
+  .avg-box{
+    border:1.5px solid var(--border); border-radius:10px; padding:12px; margin-bottom:14px; background:var(--panel);
+  }
+  .avg-box label{ display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:#4b5468; }
+  .avg-box input{
+    width:100%; border:1.5px solid var(--border); border-radius:8px; background:#fff;
+    padding:8px 10px; font-family:inherit; font-size:14px; margin-bottom:10px; outline:none;
+  }
+  .avg-box input:focus{ border-color:var(--accent); }
+
+  .divider{ height:1px; background:var(--border); margin:16px 0; }
+
+  /* ---------- Sheet (matches receipt-book page size) ---------- */
+  .sheet-wrap{
+    display:flex; justify-content:center; padding:20px 10px 0;
+  }
+  .sheet{
+    width:148mm; max-width:100%;
+    background:#fff;
+    border:1px solid #cfd4de;
+    box-shadow:0 3px 14px rgba(0,0,0,0.10);
+    padding:9mm 8mm;
+  }
+  .header{ text-align:center; margin-bottom:10px; }
+  .h-title{ font-size:18px; font-weight:700; margin:0 0 3px; }
   .h-shop-input{
     border:none; background:transparent; text-align:center;
-    font-family:inherit; font-size:26px; font-weight:700; color:var(--accent);
+    font-family:inherit; font-size:20px; font-weight:700; color:var(--accent);
     width:100%; outline:none;
   }
-  .h-line{ font-size:14.5px; margin:3px 0; }
+  .h-line{ font-size:12.5px; margin:2px 0; }
   .h-line input{
-    border:none; background:transparent; font-family:inherit; font-size:14.5px;
+    border:none; background:transparent; font-family:inherit; font-size:12.5px;
     color:var(--ink); text-align:center; outline:none;
   }
   .buyer-row{
-    display:flex; align-items:flex-end; gap:6px; margin:18px 0 10px;
-    font-size:14.5px;
+    display:flex; align-items:flex-end; gap:6px; margin:14px 0 8px;
+    font-size:12.5px;
   }
   .buyer-row input{
     flex:1; border:none; border-bottom:1px dotted var(--line);
-    background:transparent; font-family:inherit; font-size:14.5px;
+    background:transparent; font-family:inherit; font-size:12.5px;
     padding:2px 4px; outline:none;
   }
 
   table{
-    width:100%; border-collapse:collapse; margin-top:8px;
-    border:1.5px solid var(--line);
+    width:100%; border-collapse:collapse; margin-top:6px;
+    border:1.3px solid var(--line);
   }
   th{
     border:1px solid var(--line);
-    background:var(--accent-soft);
-    font-size:14px; font-weight:700;
-    padding:8px 4px;
+    background:#fff;
+    border-bottom:2px solid var(--line);
+    font-size:11.5px; font-weight:700;
+    padding:6px 3px;
   }
   td{
     border:1px solid var(--line);
     padding:0;
-    height:34px;
+    height:28px;
   }
   td input{
     width:100%; height:100%; border:none; background:transparent;
-    font-family:inherit; font-size:14px; padding:4px 6px; outline:none;
+    font-family:inherit; font-size:12px; padding:3px 5px; outline:none;
     text-align:center;
   }
   td.desc input{ text-align:left; }
-  td.amount input{ text-align:right; padding-right:10px; }
-  col.date{ width:14%; }
-  col.desc{ width:46%; }
+  td.amount input{ text-align:right; padding-right:8px; }
+  col.date{ width:16%; }
+  col.desc{ width:44%; }
   col.amount{ width:20%; }
   col.remark{ width:20%; }
+  .table-wrap{ overflow-x:auto; }
 
-  .custom-add{
-    display:flex; align-items:center; gap:8px; flex:1; min-width:220px;
-  }
-  .custom-add input{
-    flex:1; border:1.5px solid var(--line); border-radius:20px;
-    padding:7px 14px; font-family:inherit; font-size:14px; outline:none;
-    min-width:120px;
-  }
-
-  .avg-row{
-    display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center;
-    gap:10px; margin-top:14px; font-size:14px;
-  }
-  .avg-row .lbl{ font-weight:600; }
-  .avg-row input{
-    border:1.5px solid var(--line); border-radius:6px; background:#fff;
-    padding:6px 10px; font-family:inherit; font-size:14px;
-    width:130px; text-align:right; outline:none;
+  .bahttext-row{ display:flex; justify-content:center; margin-top:10px; }
+  .bahttext-box{
+    font-size:14px; font-weight:700; color:var(--ink);
+    border:1.3px dashed var(--line); border-radius:6px; background:#fff;
+    padding:6px 18px; text-align:center; min-width:70%;
   }
 
   .total-row{
-    display:flex; justify-content:flex-end; align-items:center; gap:10px;
-    margin-top:10px;
+    display:flex; justify-content:flex-end; align-items:center; gap:8px;
+    margin-top:8px;
   }
-  .total-row .lbl{ font-weight:700; font-size:15px; }
+  .total-row .lbl{ font-weight:700; font-size:12.5px; }
   .total-box{
-    border:1.5px solid var(--line); background:#fff;
-    padding:6px 14px; font-weight:700; font-size:15px; min-width:130px;
+    border:1.3px solid var(--line); background:#fff;
+    padding:5px 12px; font-weight:700; font-size:12.5px; min-width:100px;
     text-align:right;
   }
-  .bahttext-row{
-    display:flex; justify-content:center; margin-top:14px;
-  }
-  .bahttext-box{
-    font-size:19px; font-weight:700; color:var(--ink);
-    border:1.5px dashed var(--line); border-radius:8px; background:#fff;
-    padding:8px 26px; text-align:center; min-width:320px;
-  }
 
-  .cert{ margin-top:22px; font-size:14.5px; line-height:2.1; }
+  .cert{ margin-top:16px; font-size:11.5px; line-height:1.9; }
   .cert .fill{
     border:none; border-bottom:1px dotted var(--line); background:transparent;
-    font-family:inherit; font-size:14.5px; outline:none; padding:0 4px;
+    font-family:inherit; font-size:11.5px; outline:none; padding:0 3px;
   }
-  .sign-block{ margin-top:34px; font-size:15px; }
-  .sign-slot{ margin-bottom:26px; }
-  .sign-space{
-    height:70px;
-    border-bottom:2px solid var(--line);
-    margin-bottom:8px;
-  }
+
+  .sign-block{ margin-top:22px; font-size:12px; }
+  .sign-slot{ margin-bottom:18px; }
+  .sign-space{ height:46px; border-bottom:1.6px solid var(--line); margin-bottom:6px; }
   .sign-slot .fill{
     border:none; border-bottom:1px dotted var(--line); background:transparent;
-    font-family:inherit; font-size:15px; outline:none; padding:2px 4px;
+    font-family:inherit; font-size:12px; outline:none; padding:2px 3px;
   }
 
   @media print{
     body{ background:#fff; padding:0; }
-    .toolbar, .actions, .avg-row{ display:none; }
-    .sheet{ box-shadow:none; border:none; max-width:100%; }
+    .topbar, .drawer, .backdrop{ display:none !important; }
+    .sheet-wrap{ padding:0; }
+    .sheet{ box-shadow:none; border:none; width:100%; padding:6mm; }
+    @page{ size:A5; margin:8mm; }
   }
-  @media (max-width:600px){
-    .sheet{ padding:20px 14px; }
-    .h-title{ font-size:18px; }
-    .h-shop-input{ font-size:20px; }
+
+  @media (max-width:420px){
+    .sheet{ padding:6mm 4mm; }
+    .h-title{ font-size:16px; }
+    .h-shop-input{ font-size:17px; }
+    td input{ font-size:11px; }
+    th{ font-size:10.5px; }
   }
 </style>
 </head>
 <body>
 
-<div class="toolbar">
-  <span class="label">เพิ่มรายการลัด:</span>
-  <button class="quick-btn" onclick="quickAdd('ผลไม้')">ผลไม้</button>
-  <button class="quick-btn" onclick="quickAdd('โครงไก่')">โครงไก่</button>
-  <button class="quick-btn" onclick="quickAdd('ไก่สด')">ไก่สด</button>
-  <button class="quick-btn" onclick="quickAdd('หมูสด')">หมูสด</button>
-  <button class="quick-btn" onclick="quickAdd('ดอกไม้')">ดอกไม้</button>
-  <button class="quick-btn" onclick="quickAdd('แกงถุง')">แกงถุง</button>
-  <button class="quick-btn" onclick="quickAdd('ซี่โครงหมู')">ซี่โครงหมู</button>
-  <button class="quick-btn" onclick="quickAdd('ลูกชิ้น')">ลูกชิ้น</button>
-  <button class="quick-btn" onclick="quickAdd('ผักสด')">ผักสด</button>
-  <button class="quick-btn" onclick="quickAdd('เครื่องในไก่')">เครื่องในไก่</button>
-  <button class="quick-btn" onclick="quickAdd('ไส้หมู')">ไส้หมู</button>
-  <button class="quick-btn" onclick="quickAdd('ปลาแห้ง')">ปลาแห้ง</button>
-  <button class="quick-btn" onclick="quickAdd('ปลาทู')">ปลาทู</button>
-  <button class="quick-btn" style="border-color:#3d8a5a;color:#2f6e46;" onclick="randomizeOneItem()">🎲 สุ่มรายการ (ทีละแถว)</button>
-  <div class="custom-add">
-    <input type="text" id="customItem" placeholder="พิมพ์รายการเอง..." onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAddCustom();}">
-    <button class="quick-btn" onclick="quickAddCustom()">+ เพิ่ม</button>
+<header class="topbar">
+  <div class="topbar-inner">
+    <span class="topbar-title">ใบรับรองแทนใบเสร็จรับเงิน</span>
+    <button class="menu-btn" onclick="openDrawer()">☰ เมนู</button>
   </div>
-</div>
+</header>
 
-<div class="actions">
-  <button class="action-btn btn-addrow" onclick="addRow()">+ เพิ่มแถว</button>
-  <button class="action-btn btn-clear" onclick="clearForm()">ล้างข้อมูล</button>
-  <button class="action-btn btn-print" onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
-</div>
+<div class="backdrop" id="backdrop" onclick="closeDrawer()"></div>
 
-<div class="sheet">
-  <div class="header">
-    <p class="h-title">ใบรับรองแทนใบเสร็จรับเงิน</p>
-    <input class="h-shop-input" value="ร้านแอลเอสพาณิชย์">
-    <p class="h-line">
-      <input style="width:20px" value="24"> หมู่ที่ <input style="width:20px" value="7">
-      ตำบล<input style="width:110px" value="บ้านเขว้า">
-      อำเภอ<input style="width:110px" value="บ้านเขว้า">
-      จังหวัด<input style="width:90px" value="ชัยภูมิ">
-      <input style="width:60px" value="36170">
-    </p>
-    <p class="h-line">โทร. <input style="width:130px" value="065-9321492"></p>
-    <p class="h-line">เลขประจำตัวผู้เสียภาษีอากร <input style="width:150px" value="1369900570575"></p>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <span>เมนูใช้งาน</span>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-tabs">
+    <button class="tab-btn active" id="tabBtn-items" onclick="switchTab('items')">รายการลัด</button>
+    <button class="tab-btn" id="tabBtn-tools" onclick="switchTab('tools')">เครื่องมือ</button>
   </div>
 
-  <div class="buyer-row">
-    <input placeholder="ชื่อผู้ซื้อ/หน่วยงาน">
-    <span style="white-space:nowrap;">ผู้ซื้อ/ผู้รับบริการ</span>
-  </div>
-
-  <table>
-    <colgroup>
-      <col class="date"><col class="desc"><col class="amount"><col class="remark">
-    </colgroup>
-    <thead>
-      <tr>
-        <th>วัน/เดือน/ปี</th>
-        <th>รายละเอียดรายจ่าย</th>
-        <th>จำนวนเงิน</th>
-        <th>หมายเหตุ</th>
-      </tr>
-    </thead>
-    <tbody id="rows"></tbody>
-  </table>
-
-  <div class="bahttext-row">
-    <span class="bahttext-box" id="bahtTextBox">( - )</span>
-  </div>
-
-  <div class="avg-row">
-    <span class="lbl">ยอดที่ต้องการเฉลี่ย:</span>
-    <input type="number" step="0.01" id="avgTarget" placeholder="0.00">
-    <button class="quick-btn" onclick="distributeAverage()">แบ่งยอดแบบสุ่ม</button>
-  </div>
-
-  <div class="total-row">
-    <span class="lbl">รวมทั้งสิ้น</span>
-    <span class="total-box" id="totalBox">0.00</span>
-  </div>
-
-  <div class="cert">
-    ข้าพเจ้า <input class="fill" style="width:220px"> (ผู้เบิกจ่าย) ตำแหน่ง <input class="fill" style="width:180px"><br>
-    ขอรับรองว่า รายจ่ายข้างต้นนี้ไม่อาจเรียกเก็บใบเสร็จรับเงินจากผู้รับได้ และข้าพเจ้าได้จ่ายไปในงาน<br>
-    ของทาง บริษัท/ห้างหุ้นส่วนจำกัด <input class="fill" style="width:200px">
-    โดยตั้งแต่วันที่ <input class="fill" style="width:110px"> ถึงวันที่ <input class="fill" style="width:110px">
-  </div>
-
-  <div class="sign-block">
-    <div class="sign-slot">
-      <div class="sign-space"></div>
-      ลงชื่อ <input class="fill" style="width:280px"> (ผู้เบิกจ่าย)
+  <div class="drawer-panel" id="panel-items">
+    <p class="panel-label">แตะเพื่อเพิ่มรายการ</p>
+    <div class="chip-grid">
+      <button class="chip-btn" onclick="quickAdd('ผลไม้')">ผลไม้</button>
+      <button class="chip-btn" onclick="quickAdd('โครงไก่')">โครงไก่</button>
+      <button class="chip-btn" onclick="quickAdd('ไก่สด')">ไก่สด</button>
+      <button class="chip-btn" onclick="quickAdd('หมูสด')">หมูสด</button>
+      <button class="chip-btn" onclick="quickAdd('ดอกไม้')">ดอกไม้</button>
+      <button class="chip-btn" onclick="quickAdd('แกงถุง')">แกงถุง</button>
+      <button class="chip-btn" onclick="quickAdd('ซี่โครงหมู')">ซี่โครงหมู</button>
+      <button class="chip-btn" onclick="quickAdd('ลูกชิ้น')">ลูกชิ้น</button>
+      <button class="chip-btn" onclick="quickAdd('ผักสด')">ผักสด</button>
+      <button class="chip-btn" onclick="quickAdd('เครื่องในไก่')">เครื่องในไก่</button>
+      <button class="chip-btn" onclick="quickAdd('ไส้หมู')">ไส้หมู</button>
+      <button class="chip-btn" onclick="quickAdd('ปลาแห้ง')">ปลาแห้ง</button>
+      <button class="chip-btn" onclick="quickAdd('ปลาทู')">ปลาทู</button>
     </div>
-    <div class="sign-slot">
-      <div class="sign-space"></div>
-      ลงชื่อ <input class="fill" style="width:280px"> (ผู้อนุมัติ)
+
+    <p class="panel-label">พิมพ์รายการเอง</p>
+    <div class="custom-add">
+      <input type="text" id="customItem" placeholder="ชื่อรายการ..." onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAddCustom();}">
+      <button class="chip-btn" onclick="quickAddCustom()">เพิ่ม</button>
+    </div>
+
+    <div class="divider"></div>
+    <button class="wide-btn random" onclick="randomizeOneItem()">🎲 สุ่มรายการ (ทีละแถว)</button>
+  </div>
+
+  <div class="drawer-panel hidden" id="panel-tools">
+    <p class="panel-label">จัดการแถว</p>
+    <button class="wide-btn" onclick="addRow()">+ เพิ่มแถว</button>
+
+    <p class="panel-label">แบ่งยอดอัตโนมัติ</p>
+    <div class="avg-box">
+      <label>ยอดที่ต้องการเฉลี่ย (บาท)</label>
+      <input type="number" step="0.01" id="avgTarget" placeholder="0.00">
+      <button class="wide-btn" style="margin-bottom:0;" onclick="distributeAverage()">แบ่งยอดแบบสุ่ม</button>
+    </div>
+
+    <div class="divider"></div>
+    <button class="wide-btn danger" onclick="clearForm()">ล้างข้อมูลทั้งหมด</button>
+    <button class="wide-btn primary" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+  </div>
+</aside>
+
+<div class="sheet-wrap">
+  <div class="sheet">
+    <div class="header">
+      <p class="h-title">ใบรับรองแทนใบเสร็จรับเงิน</p>
+      <input class="h-shop-input" value="ร้านแอลเอสพาณิชย์">
+      <p class="h-line">
+        <input style="width:18px" value="24"> หมู่ที่ <input style="width:18px" value="7">
+        ตำบล<input style="width:100px" value="บ้านเขว้า">
+        อำเภอ<input style="width:100px" value="บ้านเขว้า">
+        จังหวัด<input style="width:80px" value="ชัยภูมิ">
+        <input style="width:55px" value="36170">
+      </p>
+      <p class="h-line">โทร. <input style="width:120px" value="065-9321492"></p>
+      <p class="h-line">เลขประจำตัวผู้เสียภาษีอากร <input style="width:140px" value="1369900570575"></p>
+    </div>
+
+    <div class="buyer-row">
+      <input placeholder="ชื่อผู้ซื้อ/หน่วยงาน">
+      <span style="white-space:nowrap;">ผู้ซื้อ/ผู้รับบริการ</span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <colgroup>
+          <col class="date"><col class="desc"><col class="amount"><col class="remark">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>วัน/เดือน/ปี</th>
+            <th>รายละเอียดรายจ่าย</th>
+            <th>จำนวนเงิน</th>
+            <th>หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <div class="bahttext-row">
+      <span class="bahttext-box" id="bahtTextBox">( - )</span>
+    </div>
+
+    <div class="total-row">
+      <span class="lbl">รวมทั้งสิ้น</span>
+      <span class="total-box" id="totalBox">0.00</span>
+    </div>
+
+    <div class="cert">
+      ข้าพเจ้า <input class="fill" style="width:200px"> (ผู้เบิกจ่าย) ตำแหน่ง <input class="fill" style="width:160px"><br>
+      ขอรับรองว่า รายจ่ายข้างต้นนี้ไม่อาจเรียกเก็บใบเสร็จรับเงินจากผู้รับได้ และข้าพเจ้าได้จ่ายไปในงาน<br>
+      ของทาง บริษัท/ห้างหุ้นส่วนจำกัด <input class="fill" style="width:180px">
+      โดยตั้งแต่วันที่ <input class="fill" style="width:100px"> ถึงวันที่ <input class="fill" style="width:100px">
+    </div>
+
+    <div class="sign-block">
+      <div class="sign-slot">
+        <div class="sign-space"></div>
+        ลงชื่อ <input class="fill" style="width:240px"> (ผู้เบิกจ่าย)
+      </div>
+      <div class="sign-slot">
+        <div class="sign-space"></div>
+        ลงชื่อ <input class="fill" style="width:240px"> (ผู้อนุมัติ)
+      </div>
     </div>
   </div>
 </div>
@@ -300,6 +379,23 @@ const ROW_COUNT_DEFAULT = 10;
 const tbody = document.getElementById('rows');
 const totalBox = document.getElementById('totalBox');
 
+/* ---------- Drawer / tabs ---------- */
+function openDrawer(){
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('backdrop').classList.add('open');
+}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('open');
+}
+function switchTab(tab){
+  document.getElementById('panel-items').classList.toggle('hidden', tab !== 'items');
+  document.getElementById('panel-tools').classList.toggle('hidden', tab !== 'tools');
+  document.getElementById('tabBtn-items').classList.toggle('active', tab === 'items');
+  document.getElementById('tabBtn-tools').classList.toggle('active', tab === 'tools');
+}
+
+/* ---------- Rows / dates ---------- */
 function todayISO(){
   const d = new Date();
   const yyyy = d.getFullYear();
@@ -326,6 +422,7 @@ function init(){
 }
 init();
 
+/* ---------- Thai baht text ---------- */
 function thaiBahtText(amount){
   const numText = ["ศูนย์","หนึ่ง","สอง","สาม","สี่","ห้า","หก","เจ็ด","แปด","เก้า"];
   const placeText = ["","สิบ","ร้อย","พัน","หมื่น","แสน"];
@@ -382,17 +479,17 @@ function thaiBahtText(amount){
   return text;
 }
 
+/* ---------- Item pool / random ---------- */
 const ITEM_POOL = ['ผลไม้','โครงไก่','ไก่สด','หมูสด','ดอกไม้','แกงถุง','ซี่โครงหมู','ลูกชิ้น','ผักสด','เครื่องในไก่','ไส้หมู','ปลาแห้ง','ปลาทู'];
 
 function randomizeOneItem(){
-  // avoid repeating an item that's already used somewhere in the table, if possible
   const usedItems = new Set(
     Array.from(tbody.querySelectorAll('td.desc input'))
       .map(inp => inp.value.trim())
       .filter(v => v !== '')
   );
   let candidates = ITEM_POOL.filter(item => !usedItems.has(item));
-  if(candidates.length === 0) candidates = ITEM_POOL; // all used already, allow repeats
+  if(candidates.length === 0) candidates = ITEM_POOL;
   const pick = candidates[Math.floor(Math.random() * candidates.length)];
   insertItem(pick);
 }
@@ -423,6 +520,7 @@ function quickAddCustom(){
   box.value = '';
 }
 
+/* ---------- Totals ---------- */
 function updateTotal(){
   const amounts = tbody.querySelectorAll('td.amount input');
   let sum = 0;
@@ -453,23 +551,16 @@ function distributeAverage(){
     return;
   }
 
-  // generate n random positive weights, normalize so they sum to 1,
-  // clamp so no single share is too extreme (keeps values reasonable)
   let weights = [];
-  for(let i=0;i<n;i++) weights.push(0.5 + Math.random()); // range 0.5–1.5
+  for(let i=0;i<n;i++) weights.push(0.5 + Math.random());
   const weightSum = weights.reduce((a,b)=>a+b, 0);
 
-  // round each share to nearest 1 baht (or 0.25 for smaller totals), then
-  // fix rounding drift on the last row so the total matches exactly
-  const roundTo = target >= 200 ? 1 : (target >= 50 ? 5/10 : 0.25);
+  const roundTo = target >= 200 ? 1 : (target >= 50 ? 0.5 : 0.25);
   let amounts = weights.map(w => Math.round((target * w / weightSum) / roundTo) * roundTo);
 
-  // fix drift so amounts sum exactly to target
   let drift = Math.round((target - amounts.reduce((a,b)=>a+b,0)) * 100) / 100;
   amounts[amounts.length - 1] = Math.round((amounts[amounts.length - 1] + drift) * 100) / 100;
 
-  // guard against a negative last value from a large drift; if it happens,
-  // spread the drift across all rows instead
   if(amounts[amounts.length - 1] < 0){
     const even = Math.round((target / n) * 100) / 100;
     amounts = new Array(n).fill(even);
@@ -489,7 +580,7 @@ function clearForm(){
   init();
   updateTotal();
   document.getElementById('avgTarget').value = '';
-  document.querySelectorAll('.cert input, .sign-block input, .buyer-row input').forEach(i=>i.value='');
+  document.querySelectorAll('.cert input, .sign-slot input, .buyer-row input').forEach(i=>i.value='');
 }
 </script>
 </body>
