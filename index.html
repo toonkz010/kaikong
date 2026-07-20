@@ -158,18 +158,35 @@
     padding:6px 14px; font-weight:700; font-size:15px; min-width:130px;
     text-align:right;
   }
+  .bahttext-row{
+    display:flex; justify-content:center; margin-top:14px;
+  }
+  .bahttext-box{
+    font-size:19px; font-weight:700; color:var(--ink);
+    border:1.5px dashed var(--line); border-radius:8px; background:#fff;
+    padding:8px 26px; text-align:center; min-width:320px;
+  }
 
   .cert{ margin-top:22px; font-size:14.5px; line-height:2.1; }
   .cert .fill{
     border:none; border-bottom:1px dotted var(--line); background:transparent;
     font-family:inherit; font-size:14.5px; outline:none; padding:0 4px;
   }
-  .sign-block{ margin-top:26px; font-size:14.5px; line-height:2.4; }
-  .sign-block .fill{ width:260px; }
+  .sign-block{ margin-top:34px; font-size:15px; }
+  .sign-slot{ margin-bottom:26px; }
+  .sign-space{
+    height:70px;
+    border-bottom:2px solid var(--line);
+    margin-bottom:8px;
+  }
+  .sign-slot .fill{
+    border:none; border-bottom:1px dotted var(--line); background:transparent;
+    font-family:inherit; font-size:15px; outline:none; padding:2px 4px;
+  }
 
   @media print{
     body{ background:#fff; padding:0; }
-    .toolbar, .actions{ display:none; }
+    .toolbar, .actions, .avg-row{ display:none; }
     .sheet{ box-shadow:none; border:none; max-width:100%; }
   }
   @media (max-width:600px){
@@ -183,9 +200,20 @@
 
 <div class="toolbar">
   <span class="label">เพิ่มรายการลัด:</span>
-  <button class="quick-btn" onclick="quickAdd('ของสด')">ของสด</button>
-  <button class="quick-btn" onclick="quickAdd('หมูสดไก่สด')">หมูสดไก่สด</button>
-  <button class="quick-btn" onclick="quickAdd('กับข้าว')">กับข้าว</button>
+  <button class="quick-btn" onclick="quickAdd('ผลไม้')">ผลไม้</button>
+  <button class="quick-btn" onclick="quickAdd('โครงไก่')">โครงไก่</button>
+  <button class="quick-btn" onclick="quickAdd('ไก่สด')">ไก่สด</button>
+  <button class="quick-btn" onclick="quickAdd('หมูสด')">หมูสด</button>
+  <button class="quick-btn" onclick="quickAdd('ดอกไม้')">ดอกไม้</button>
+  <button class="quick-btn" onclick="quickAdd('แกงถุง')">แกงถุง</button>
+  <button class="quick-btn" onclick="quickAdd('ซี่โครงหมู')">ซี่โครงหมู</button>
+  <button class="quick-btn" onclick="quickAdd('ลูกชิ้น')">ลูกชิ้น</button>
+  <button class="quick-btn" onclick="quickAdd('ผักสด')">ผักสด</button>
+  <button class="quick-btn" onclick="quickAdd('เครื่องในไก่')">เครื่องในไก่</button>
+  <button class="quick-btn" onclick="quickAdd('ไส้หมู')">ไส้หมู</button>
+  <button class="quick-btn" onclick="quickAdd('ปลาแห้ง')">ปลาแห้ง</button>
+  <button class="quick-btn" onclick="quickAdd('ปลาทู')">ปลาทู</button>
+  <button class="quick-btn" style="border-color:#3d8a5a;color:#2f6e46;" onclick="randomizeOneItem()">🎲 สุ่มรายการ (ทีละแถว)</button>
   <div class="custom-add">
     <input type="text" id="customItem" placeholder="พิมพ์รายการเอง..." onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAddCustom();}">
     <button class="quick-btn" onclick="quickAddCustom()">+ เพิ่ม</button>
@@ -233,6 +261,10 @@
     <tbody id="rows"></tbody>
   </table>
 
+  <div class="bahttext-row">
+    <span class="bahttext-box" id="bahtTextBox">( - )</span>
+  </div>
+
   <div class="avg-row">
     <span class="lbl">ยอดที่ต้องการเฉลี่ย:</span>
     <input type="number" step="0.01" id="avgTarget" placeholder="0.00">
@@ -252,8 +284,14 @@
   </div>
 
   <div class="sign-block">
-    ลงชื่อ <input class="fill" style="width:260px"> (ผู้เบิกจ่าย)<br>
-    ลงชื่อ <input class="fill" style="width:260px"> (ผู้อนุมัติ)
+    <div class="sign-slot">
+      <div class="sign-space"></div>
+      ลงชื่อ <input class="fill" style="width:280px"> (ผู้เบิกจ่าย)
+    </div>
+    <div class="sign-slot">
+      <div class="sign-space"></div>
+      ลงชื่อ <input class="fill" style="width:280px"> (ผู้อนุมัติ)
+    </div>
   </div>
 </div>
 
@@ -262,18 +300,18 @@ const ROW_COUNT_DEFAULT = 10;
 const tbody = document.getElementById('rows');
 const totalBox = document.getElementById('totalBox');
 
-function todayThai(){
-  try{
-    return new Date().toLocaleDateString('th-TH-u-ca-buddhist', {day:'2-digit', month:'2-digit', year:'numeric'});
-  }catch(e){
-    return new Date().toLocaleDateString('th-TH');
-  }
+function todayISO(){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function makeRow(){
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><input type="text" class="date-input" value="${todayThai()}"></td>
+    <td><input type="date" class="date-input" value="${todayISO()}" max="${todayISO()}"></td>
     <td class="desc"><input type="text" placeholder=""></td>
     <td class="amount"><input type="number" step="0.01" placeholder="" oninput="updateTotal()"></td>
     <td><input type="text" placeholder=""></td>
@@ -287,6 +325,77 @@ function init(){
   for(let i=0;i<ROW_COUNT_DEFAULT;i++) makeRow();
 }
 init();
+
+function thaiBahtText(amount){
+  const numText = ["ศูนย์","หนึ่ง","สอง","สาม","สี่","ห้า","หก","เจ็ด","แปด","เก้า"];
+  const placeText = ["","สิบ","ร้อย","พัน","หมื่น","แสน"];
+
+  function convertGroup(groupStr){
+    groupStr = groupStr.replace(/^0+/, "");
+    const len = groupStr.length;
+    let result = "";
+    for(let i=0;i<len;i++){
+      const digit = parseInt(groupStr[i]);
+      const place = len - i - 1;
+      if(digit === 0) continue;
+      if(place === 0){
+        if(digit === 1 && len > 1) result += "เอ็ด";
+        else result += numText[digit];
+      } else if(place === 1){
+        if(digit === 1) result += "สิบ";
+        else if(digit === 2) result += "ยี่สิบ";
+        else result += numText[digit] + "สิบ";
+      } else {
+        result += numText[digit] + placeText[place];
+      }
+    }
+    return result;
+  }
+
+  function convertInt(numStr){
+    numStr = numStr.replace(/^0+/, "") || "0";
+    if(numStr === "0") return "ศูนย์";
+    let groups = [];
+    while(numStr.length > 6){
+      groups.unshift(numStr.slice(-6));
+      numStr = numStr.slice(0, -6);
+    }
+    groups.unshift(numStr);
+    let parts = [];
+    for(let g=0; g<groups.length; g++){
+      const groupStr = groups[g];
+      if(groupStr === "" || parseInt(groupStr) === 0) continue;
+      parts.push(convertGroup(groupStr) + (g < groups.length - 1 ? "ล้าน" : ""));
+    }
+    return parts.length ? parts.join("") : "ศูนย์";
+  }
+
+  const fixed = Math.abs(amount).toFixed(2);
+  const [intPart, decPart] = fixed.split(".");
+  let text = convertInt(intPart) + "บาท";
+  const satang = parseInt(decPart);
+  if(satang === 0){
+    text += "ถ้วน";
+  } else {
+    text += convertGroup(satang.toString().padStart(2,"0")) + "สตางค์";
+  }
+  return text;
+}
+
+const ITEM_POOL = ['ผลไม้','โครงไก่','ไก่สด','หมูสด','ดอกไม้','แกงถุง','ซี่โครงหมู','ลูกชิ้น','ผักสด','เครื่องในไก่','ไส้หมู','ปลาแห้ง','ปลาทู'];
+
+function randomizeOneItem(){
+  // avoid repeating an item that's already used somewhere in the table, if possible
+  const usedItems = new Set(
+    Array.from(tbody.querySelectorAll('td.desc input'))
+      .map(inp => inp.value.trim())
+      .filter(v => v !== '')
+  );
+  let candidates = ITEM_POOL.filter(item => !usedItems.has(item));
+  if(candidates.length === 0) candidates = ITEM_POOL; // all used already, allow repeats
+  const pick = candidates[Math.floor(Math.random() * candidates.length)];
+  insertItem(pick);
+}
 
 function insertItem(label){
   const descInputs = tbody.querySelectorAll('td.desc input');
@@ -322,6 +431,8 @@ function updateTotal(){
     if(!isNaN(v)) sum += v;
   });
   totalBox.textContent = sum.toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const bahtBox = document.getElementById('bahtTextBox');
+  bahtBox.textContent = sum > 0 ? `( ${thaiBahtText(sum)} )` : '( - )';
 }
 
 function distributeAverage(){
