@@ -2,8 +2,18 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ใบรับรองแทนใบเสร็จรับเงิน</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1c2a4a">
+<link rel="icon" href="icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ใบรับรองแทนใบเสร็จ">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -355,14 +365,14 @@
       <p class="h-title">ใบรับรองแทนใบเสร็จรับเงิน</p>
       <input class="h-shop-input" value="ร้านแอลเอสพาณิชย์">
       <p class="h-line">
-        <input style="width:18px" value="24"> หมู่ที่ <input style="width:18px" value="7">
-        ตำบล<input style="width:100px" value="บ้านเขว้า">
-        อำเภอ<input style="width:100px" value="บ้านเขว้า">
-        จังหวัด<input style="width:80px" value="ชัยภูมิ">
-        <input style="width:55px" value="36170">
+        <input style="width:2.6em" value="24"> หมู่ที่ <input style="width:1.8em" value="7">
+        ตำบล<input style="width:6.5em" value="บ้านเขว้า">
+        อำเภอ<input style="width:6.5em" value="บ้านเขว้า">
+        จังหวัด<input style="width:5.2em" value="ชัยภูมิ">
+        <input style="width:4.2em" value="36170">
       </p>
-      <p class="h-line">โทร. <input style="width:120px" value="065-9321492"></p>
-      <p class="h-line">เลขประจำตัวผู้เสียภาษีอากร <input style="width:140px" value="1369900570575"></p>
+      <p class="h-line">โทร. <input style="width:8.5em" value="065-9321492"></p>
+      <p class="h-line">เลขประจำตัวผู้เสียภาษีอากร <input style="width:9.5em" value="1369900570575"></p>
     </div>
 
     <div class="buyer-row">
@@ -397,20 +407,20 @@
     </div>
 
     <div class="cert">
-      ข้าพเจ้า <input class="fill" style="width:200px"> (ผู้เบิกจ่าย) ตำแหน่ง <input class="fill" style="width:160px"><br>
+      ข้าพเจ้า <input class="fill" style="width:13em"> (ผู้เบิกจ่าย) ตำแหน่ง <input class="fill" style="width:10em"><br>
       ขอรับรองว่า รายจ่ายข้างต้นนี้ไม่อาจเรียกเก็บใบเสร็จรับเงินจากผู้รับได้ และข้าพเจ้าได้จ่ายไปในงาน<br>
-      ของทาง บริษัท/ห้างหุ้นส่วนจำกัด <input class="fill" style="width:180px">
-      โดยตั้งแต่วันที่ <input class="fill" style="width:100px"> ถึงวันที่ <input class="fill" style="width:100px">
+      ของทาง บริษัท/ห้างหุ้นส่วนจำกัด <input class="fill" style="width:11.5em">
+      โดยตั้งแต่วันที่ <input class="fill" style="width:7em"> ถึงวันที่ <input class="fill" style="width:7em">
     </div>
 
     <div class="sign-block">
       <div class="sign-slot">
         <div class="sign-space"></div>
-        ลงชื่อ <input class="fill" style="width:240px"> (ผู้เบิกจ่าย)
+        ลงชื่อ <input class="fill" style="width:16em"> (ผู้เบิกจ่าย)
       </div>
       <div class="sign-slot">
         <div class="sign-space"></div>
-        ลงชื่อ <input class="fill" style="width:240px"> (ผู้อนุมัติ)
+        ลงชื่อ <input class="fill" style="width:16em"> (ผู้อนุมัติ)
       </div>
     </div>
   </div>
@@ -696,6 +706,15 @@ function clearForm(){
   updateTotal();
   document.getElementById('avgTarget').value = '';
   document.querySelectorAll('.cert input, .sign-slot input, .buyer-row input').forEach(i=>i.value='');
+}
+
+/* ---------- PWA: register service worker for offline use ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {
+      // offline registration failure is non-fatal; app still works online
+    });
+  });
 }
 </script>
 </body>
