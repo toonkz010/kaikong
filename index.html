@@ -57,6 +57,28 @@
   }
   .menu-btn:active{ transform:scale(0.97); }
 
+  /* ---------- Floating action buttons ---------- */
+  .fab-stack{
+    position:fixed; right:16px; bottom:18px; z-index:25;
+    display:flex; flex-direction:column; align-items:flex-end; gap:12px;
+  }
+  .fab{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    border:none; border-radius:999px; cursor:pointer; font-family:inherit;
+    box-shadow:0 4px 14px rgba(0,0,0,0.22);
+  }
+  .fab-print{
+    background:#fff; color:var(--accent); border:1.5px solid var(--accent);
+    width:52px; height:52px; font-size:22px;
+  }
+  .fab-print:active{ transform:scale(0.95); }
+  .fab-menu{
+    background:var(--accent); color:#fff;
+    padding:0 20px; height:56px; font-size:15px; font-weight:700;
+  }
+  .fab-menu:active{ transform:scale(0.97); }
+  @media print{ .fab-stack{ display:none !important; } }
+
   /* ---------- Drawer ---------- */
   .backdrop{
     position:fixed; inset:0; background:rgba(20,25,40,0.4);
@@ -84,11 +106,12 @@
 
   .drawer-tabs{
     display:flex; gap:6px; padding:10px 16px; border-bottom:1px solid var(--border);
+    overflow-x:auto; -webkit-overflow-scrolling:touch;
   }
   .tab-btn{
-    flex:1; padding:9px 10px; border-radius:8px; border:1.5px solid var(--border);
-    background:#fff; font-family:inherit; font-size:13.5px; font-weight:600;
-    color:#5a6479; cursor:pointer;
+    flex:0 0 auto; padding:9px 13px; border-radius:8px; border:1.5px solid var(--border);
+    background:#fff; font-family:inherit; font-size:13px; font-weight:600;
+    color:#5a6479; cursor:pointer; white-space:nowrap;
   }
   .tab-btn.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
 
@@ -151,6 +174,17 @@
     padding:8px 10px; margin:-4px 0 14px; min-height:16px;
   }
   .preview-line.ok{ color:var(--ok); border-color:var(--ok); background:#f0f8f2; }
+
+  .history-item{
+    border:1.5px solid var(--border); border-radius:12px; padding:12px;
+    margin-bottom:10px; background:#fff;
+  }
+  .history-meta{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .history-date{ font-size:12.5px; color:#5a6479; font-weight:600; }
+  .history-total{ font-size:14.5px; font-weight:700; color:var(--accent-dark); }
+  .history-sub{ font-size:12px; color:#7a8296; margin:4px 0 10px; }
+  .history-actions{ display:flex; gap:8px; }
+  .history-actions .chip-btn{ flex:1; min-height:38px; font-size:13px; padding:8px 6px; }
 
   /* ---------- Sheet (matches receipt-book page size) ---------- */
   .sheet-wrap{
@@ -276,9 +310,13 @@
 <header class="topbar">
   <div class="topbar-inner">
     <span class="topbar-title">ใบรับรองแทนใบเสร็จรับเงิน</span>
-    <button class="menu-btn" onclick="openDrawer()">☰ เมนู</button>
   </div>
 </header>
+
+<div class="fab-stack">
+  <button class="fab fab-print" onclick="doPrint()" title="พิมพ์ / บันทึกเป็น PDF">🖨️</button>
+  <button class="fab fab-menu" onclick="openDrawer()">☰ เมนู</button>
+</div>
 
 <div class="backdrop" id="backdrop" onclick="closeDrawer()"></div>
 
@@ -288,7 +326,10 @@
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
   </div>
   <div class="drawer-tabs">
-    <button class="tab-btn active" id="tabBtn-items" onclick="switchTab('items')">รายการลัด</button>
+    <button class="tab-btn active" id="tabBtn-items" onclick="switchTab('items')">รายการสินค้า</button>
+    <button class="tab-btn" id="tabBtn-dates" onclick="switchTab('dates')">วันที่</button>
+    <button class="tab-btn" id="tabBtn-amounts" onclick="switchTab('amounts')">จำนวนเงิน</button>
+    <button class="tab-btn" id="tabBtn-history" onclick="switchTab('history')">ประวัติ</button>
     <button class="tab-btn" id="tabBtn-tools" onclick="switchTab('tools')">เครื่องมือ</button>
   </div>
 
@@ -317,9 +358,11 @@
     </div>
 
     <div class="divider"></div>
+    <button class="wide-btn" onclick="duplicateLastRow()">⧉ คัดลอกแถวล่าสุด</button>
     <button class="wide-btn random" onclick="randomizeOneItem()">🎲 สุ่มรายการ (ทีละแถว)</button>
+  </div>
 
-    <div class="divider"></div>
+  <div class="drawer-panel hidden" id="panel-dates">
     <p class="panel-label">เลือกวันที่ลัด</p>
     <div class="chip-grid">
       <button class="chip-btn" onclick="quickSetDate(0)">วันนี้</button>
@@ -328,13 +371,15 @@
       <button class="chip-btn" onclick="quickSetDate(3)">3 วันก่อน</button>
       <button class="chip-btn" onclick="quickSetDate(7)">7 วันก่อน</button>
     </div>
+    <p class="panel-label">หรือเลือกวันที่เอง</p>
     <div class="custom-add">
       <input type="date" id="customDate">
       <button class="chip-btn" onclick="quickSetCustomDate()">ใส่</button>
     </div>
     <div class="preview-line" id="datePreview">แตะปุ่มลัดหรือเลือกวันที่ เพื่อใส่ในแถวว่างถัดไป</div>
+  </div>
 
-    <div class="divider"></div>
+  <div class="drawer-panel hidden" id="panel-amounts">
     <p class="panel-label">ใส่จำนวนเงินลัด</p>
     <div class="chip-grid">
       <button class="chip-btn" onclick="quickAmount(20)">20 บาท</button>
@@ -346,11 +391,19 @@
       <button class="chip-btn" onclick="quickAmount(500)">500 บาท</button>
       <button class="chip-btn" onclick="quickAmount(1000)">1,000 บาท</button>
     </div>
+    <p class="panel-label">หรือพิมพ์จำนวนเอง</p>
     <div class="custom-add">
       <input type="number" step="0.01" id="customAmount" placeholder="ใส่จำนวนเอง..." oninput="previewCustomAmount()">
       <button class="chip-btn" onclick="quickAmountCustom()">เพิ่ม</button>
     </div>
     <div class="preview-line" id="amountPreview">พิมพ์หรือแตะปุ่มลัด จะโชว์ตัวอย่างยอดเป็นตัวอักษรตรงนี้</div>
+  </div>
+
+  <div class="drawer-panel hidden" id="panel-history">
+    <p class="panel-label">ประวัติที่บันทึกไว้ในเครื่องนี้</p>
+    <button class="wide-btn" onclick="manualSaveToHistory()">💾 บันทึกฟอร์มปัจจุบันเข้าประวัติ</button>
+    <div class="divider"></div>
+    <div id="historyList"></div>
   </div>
 
   <div class="drawer-panel hidden" id="panel-tools">
@@ -366,7 +419,7 @@
 
     <div class="divider"></div>
     <button class="wide-btn danger" onclick="clearForm()">ล้างข้อมูลทั้งหมด</button>
-    <button class="wide-btn primary" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+    <button class="wide-btn primary" onclick="doPrint()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
   </div>
 </aside>
 
@@ -374,20 +427,20 @@
   <div class="sheet">
     <div class="header">
       <p class="h-title">ใบรับรองแทนใบเสร็จรับเงิน</p>
-      <input class="h-shop-input" value="ร้านแอลเอสพาณิชย์">
+      <input class="h-shop-input" data-key="shopName" value="ร้านแอลเอสพาณิชย์">
       <p class="h-line">
-        <input style="width:2.6em" value="24"> หมู่ที่ <input style="width:1.8em" value="7">
-        ตำบล<input style="width:6.5em" value="บ้านเขว้า">
-        อำเภอ<input style="width:6.5em" value="บ้านเขว้า">
-        จังหวัด<input style="width:5.2em" value="ชัยภูมิ">
-        <input style="width:4.2em" value="36170">
+        <input style="width:2.6em" data-key="houseNo" value="24"> หมู่ที่ <input style="width:1.8em" data-key="moo" value="7">
+        ตำบล<input style="width:6.5em" data-key="tambon" value="บ้านเขว้า">
+        อำเภอ<input style="width:6.5em" data-key="amphoe" value="บ้านเขว้า">
+        จังหวัด<input style="width:5.2em" data-key="changwat" value="ชัยภูมิ">
+        <input style="width:4.2em" data-key="zipcode" value="36170">
       </p>
-      <p class="h-line">โทร. <input style="width:8.5em" value="065-9321492"></p>
-      <p class="h-line">เลขประจำตัวผู้เสียภาษีอากร <input style="width:9.5em" value="1369900570575"></p>
+      <p class="h-line">โทร. <input style="width:8.5em" data-key="phone" value="065-9321492"></p>
+      <p class="h-line">เลขประจำตัวผู้เสียภาษีอากร <input style="width:9.5em" data-key="taxId" value="1369900570575"></p>
     </div>
 
     <div class="buyer-row">
-      <input placeholder="ชื่อผู้ซื้อ/หน่วยงาน">
+      <input placeholder="ชื่อผู้ซื้อ/หน่วยงาน" data-key="buyerName">
       <span style="white-space:nowrap;">ผู้ซื้อ/ผู้รับบริการ</span>
     </div>
 
@@ -418,20 +471,20 @@
     </div>
 
     <div class="cert">
-      ข้าพเจ้า <input class="fill" style="width:13em"> (ผู้เบิกจ่าย) ตำแหน่ง <input class="fill" style="width:10em"><br>
+      ข้าพเจ้า <input class="fill" style="width:13em" data-key="certName"> (ผู้เบิกจ่าย) ตำแหน่ง <input class="fill" style="width:10em" data-key="certPosition"><br>
       ขอรับรองว่า รายจ่ายข้างต้นนี้ไม่อาจเรียกเก็บใบเสร็จรับเงินจากผู้รับได้ และข้าพเจ้าได้จ่ายไปในงาน<br>
-      ของทาง บริษัท/ห้างหุ้นส่วนจำกัด <input class="fill" style="width:11.5em">
-      โดยตั้งแต่วันที่ <input class="fill" style="width:7em"> ถึงวันที่ <input class="fill" style="width:7em">
+      ของทาง บริษัท/ห้างหุ้นส่วนจำกัด <input class="fill" style="width:11.5em" data-key="certCompany">
+      โดยตั้งแต่วันที่ <input class="fill" style="width:7em" data-key="certFrom"> ถึงวันที่ <input class="fill" style="width:7em" data-key="certTo">
     </div>
 
     <div class="sign-block">
       <div class="sign-slot">
         <div class="sign-space"></div>
-        ลงชื่อ <input class="fill" style="width:16em"> (ผู้เบิกจ่าย)
+        ลงชื่อ <input class="fill" style="width:16em" data-key="signPayer"> (ผู้เบิกจ่าย)
       </div>
       <div class="sign-slot">
         <div class="sign-space"></div>
-        ลงชื่อ <input class="fill" style="width:16em"> (ผู้อนุมัติ)
+        ลงชื่อ <input class="fill" style="width:16em" data-key="signApprover"> (ผู้อนุมัติ)
       </div>
     </div>
   </div>
@@ -452,10 +505,12 @@ function closeDrawer(){
   document.getElementById('backdrop').classList.remove('open');
 }
 function switchTab(tab){
-  document.getElementById('panel-items').classList.toggle('hidden', tab !== 'items');
-  document.getElementById('panel-tools').classList.toggle('hidden', tab !== 'tools');
-  document.getElementById('tabBtn-items').classList.toggle('active', tab === 'items');
-  document.getElementById('tabBtn-tools').classList.toggle('active', tab === 'tools');
+  const tabs = ['items','dates','amounts','history','tools'];
+  tabs.forEach(t=>{
+    document.getElementById('panel-' + t).classList.toggle('hidden', t !== tab);
+    document.getElementById('tabBtn-' + t).classList.toggle('active', t === tab);
+  });
+  if(tab === 'history') renderHistory();
 }
 
 /* ---------- Rows / dates ---------- */
@@ -470,7 +525,7 @@ function todayISO(){
 function makeRow(){
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><input type="text" class="date-input" value="" placeholder="" readonly onclick="openDrawer(); switchTab('items');"></td>
+    <td><input type="text" class="date-input" value="" placeholder="" readonly onclick="openDrawer(); switchTab('dates');"></td>
     <td class="desc"><input type="text" placeholder=""></td>
     <td class="amount"><input type="number" step="0.01" placeholder="" oninput="updateTotal()"></td>
     <td><input type="text" placeholder=""></td>
@@ -483,7 +538,6 @@ function addRow(){ makeRow(); }
 function init(){
   for(let i=0;i<ROW_COUNT_DEFAULT;i++) makeRow();
 }
-init();
 
 /* ---------- Thai baht text ---------- */
 function thaiBahtText(amount){
@@ -569,6 +623,7 @@ function insertItem(label){
   target.value = label;
   const row = target.closest('tr');
   row.querySelector('td.amount input').focus();
+  saveDraft();
 }
 
 function quickAdd(label){
@@ -597,6 +652,7 @@ function insertDate(isoDate){
   target.value = label;
   document.getElementById('datePreview').textContent = `ใส่วันที่ ${label} ในแถวว่างถัดไปแล้ว`;
   document.getElementById('datePreview').classList.add('ok');
+  saveDraft();
 }
 
 function quickSetDate(offsetDays){
@@ -629,6 +685,7 @@ function insertAmount(value){
   const formatted = value.toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
   document.getElementById('amountPreview').textContent = `ใส่ ${formatted} บาท (${thaiBahtText(value)}) ในแถวว่างถัดไปแล้ว`;
   document.getElementById('amountPreview').classList.add('ok');
+  saveDraft();
 }
 
 function quickAmount(value){
@@ -708,15 +765,195 @@ function distributeAverage(){
     tr.querySelector('td.amount input').value = amounts[idx].toFixed(2);
   });
   updateTotal();
+  saveDraft();
 }
 
 function clearForm(){
-  if(!confirm('ต้องการล้างข้อมูลทั้งหมดในฟอร์มหรือไม่?')) return;
+  if(!confirm('ต้องการล้างข้อมูลทั้งหมดในฟอร์มหรือไม่? (ประวัติที่บันทึกไว้จะไม่ถูกลบ)')) return;
   tbody.innerHTML = '';
   init();
   updateTotal();
   document.getElementById('avgTarget').value = '';
   document.querySelectorAll('.cert input, .sign-slot input, .buyer-row input').forEach(i=>i.value='');
+  clearDraft();
+}
+
+/* ---------- State serialization (for draft autosave + history) ---------- */
+function getFieldMap(){
+  const map = {};
+  document.querySelectorAll('[data-key]').forEach(el => { map[el.dataset.key] = el.value; });
+  return map;
+}
+function setFieldMap(map){
+  if(!map) return;
+  document.querySelectorAll('[data-key]').forEach(el => {
+    if(map[el.dataset.key] !== undefined) el.value = map[el.dataset.key];
+  });
+}
+function getRowsData(){
+  return Array.from(tbody.querySelectorAll('tr')).map(tr=>{
+    const inputs = tr.querySelectorAll('td input');
+    return { date: inputs[0].value, desc: inputs[1].value, amount: inputs[2].value, remark: inputs[3].value };
+  });
+}
+function setRowsData(rows){
+  tbody.innerHTML = '';
+  if(!rows || rows.length === 0){ init(); return; }
+  rows.forEach(r=>{
+    makeRow();
+    const tr = tbody.lastElementChild;
+    const inputs = tr.querySelectorAll('td input');
+    inputs[0].value = r.date || '';
+    inputs[1].value = r.desc || '';
+    inputs[2].value = r.amount || '';
+    inputs[3].value = r.remark || '';
+  });
+  while(tbody.querySelectorAll('tr').length < ROW_COUNT_DEFAULT) makeRow();
+  updateTotal();
+}
+
+/* ---------- Draft autosave (silent, restores on reopen) ---------- */
+const DRAFT_KEY = 'baipan_draft_v1';
+let draftSaveTimer = null;
+function saveDraft(){
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(()=>{
+    try{
+      const draft = { fields: getFieldMap(), rows: getRowsData(), savedAt: Date.now() };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    }catch(e){ /* storage unavailable; fail silently */ }
+  }, 350);
+}
+function loadDraft(){
+  try{
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if(!raw) return false;
+    const draft = JSON.parse(raw);
+    setFieldMap(draft.fields);
+    setRowsData(draft.rows);
+    return true;
+  }catch(e){ return false; }
+}
+function clearDraft(){
+  try{ localStorage.removeItem(DRAFT_KEY); }catch(e){}
+}
+// autosave on any real user edit inside the sheet
+document.addEventListener('input', (e)=>{
+  if(e.target.closest && e.target.closest('.sheet')) saveDraft();
+});
+// warn before leaving if there's unsaved item/amount data (best-effort; mobile browsers may ignore)
+window.addEventListener('beforeunload', (e)=>{
+  const hasData = getRowsData().some(r => r.desc.trim() !== '' || r.amount.trim() !== '');
+  if(hasData){ e.preventDefault(); e.returnValue = ''; }
+});
+
+/* ---------- Duplicate last filled row (item + amount, not date) ---------- */
+function duplicateLastRow(){
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  let source = null;
+  for(let i = rows.length - 1; i >= 0; i--){
+    if(rows[i].querySelector('td.desc input').value.trim() !== ''){ source = rows[i]; break; }
+  }
+  if(!source){ alert('ยังไม่มีรายการให้คัดลอก'); return; }
+  const desc = source.querySelector('td.desc input').value;
+  const amount = source.querySelector('td.amount input').value;
+  insertItem(desc);
+  const active = document.activeElement;
+  if(active && active.tagName === 'INPUT' && amount){ active.value = amount; updateTotal(); }
+  saveDraft();
+}
+
+/* ---------- Validate + print ---------- */
+function validateBeforePrint(){
+  const issues = [];
+  Array.from(tbody.querySelectorAll('tr')).forEach((tr, idx)=>{
+    const desc = tr.querySelector('td.desc input').value.trim();
+    const amount = tr.querySelector('td.amount input').value.trim();
+    if(desc && !amount) issues.push(`แถวที่ ${idx+1}: มีรายการ "${desc}" แต่ยังไม่ใส่จำนวนเงิน`);
+    if(!desc && amount) issues.push(`แถวที่ ${idx+1}: ใส่จำนวนเงินไว้แต่ยังไม่ระบุรายการ`);
+  });
+  const payer = document.querySelector('[data-key="signPayer"]');
+  if(payer && payer.value.trim() === '') issues.push('ยังไม่ได้กรอกชื่อในช่องลงชื่อผู้เบิกจ่าย');
+  return issues;
+}
+function doPrint(){
+  const issues = validateBeforePrint();
+  if(issues.length > 0){
+    const proceed = confirm('ตรวจพบข้อมูลที่อาจไม่ครบ:\n\n' + issues.join('\n') + '\n\nต้องการพิมพ์ต่อหรือไม่?');
+    if(!proceed) return;
+  }
+  saveToHistory();
+  window.print();
+}
+
+/* ---------- History (saved locally on this device) ---------- */
+const HISTORY_KEY = 'baipan_history_v1';
+function getHistory(){
+  try{ return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }catch(e){ return []; }
+}
+function setHistoryList(list){
+  try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); }catch(e){}
+}
+function saveToHistory(){
+  const rows = getRowsData().filter(r => r.desc.trim() !== '' || r.amount.trim() !== '');
+  if(rows.length === 0) return;
+  const fields = getFieldMap();
+  const total = rows.reduce((s,r)=> s + (parseFloat(r.amount) || 0), 0);
+  const record = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    savedAt: Date.now(),
+    buyer: fields.buyerName || '',
+    fields, rows, total
+  };
+  const list = getHistory();
+  list.unshift(record);
+  if(list.length > 50) list.length = 50;
+  setHistoryList(list);
+  renderHistory();
+}
+function manualSaveToHistory(){
+  const rows = getRowsData().filter(r => r.desc.trim() !== '' || r.amount.trim() !== '');
+  if(rows.length === 0){ alert('ยังไม่มีรายการให้บันทึก'); return; }
+  saveToHistory();
+  alert('บันทึกเข้าประวัติแล้ว');
+}
+function deleteHistoryItem(id){
+  if(!confirm('ลบรายการนี้ออกจากประวัติหรือไม่?')) return;
+  setHistoryList(getHistory().filter(r => r.id !== id));
+  renderHistory();
+}
+function loadHistoryItem(id){
+  const record = getHistory().find(r => r.id === id);
+  if(!record) return;
+  if(!confirm('โหลดรายการนี้เข้าฟอร์ม? ข้อมูลปัจจุบันในฟอร์มจะถูกแทนที่')) return;
+  setFieldMap(record.fields);
+  setRowsData(record.rows);
+  saveDraft();
+  closeDrawer();
+}
+function formatHistoryDate(ts){
+  return new Date(ts).toLocaleString('th-TH-u-ca-buddhist', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+function renderHistory(){
+  const container = document.getElementById('historyList');
+  const list = getHistory();
+  if(list.length === 0){
+    container.innerHTML = '<div class="preview-line">ยังไม่มีประวัติที่บันทึกไว้</div>';
+    return;
+  }
+  container.innerHTML = list.map(r => `
+    <div class="history-item">
+      <div class="history-meta">
+        <span class="history-date">${formatHistoryDate(r.savedAt)}</span>
+        <span class="history-total">${r.total.toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2})} บาท</span>
+      </div>
+      <div class="history-sub">${r.rows.length} รายการ${r.buyer ? ' • ' + r.buyer : ''}</div>
+      <div class="history-actions">
+        <button class="chip-btn" onclick="loadHistoryItem('${r.id}')">โหลด</button>
+        <button class="chip-btn" style="border-color:var(--danger);color:var(--danger);" onclick="deleteHistoryItem('${r.id}')">ลบ</button>
+      </div>
+    </div>
+  `).join('');
 }
 
 /* ---------- PWA: register service worker for offline use ---------- */
@@ -726,6 +963,11 @@ if('serviceWorker' in navigator){
       // offline registration failure is non-fatal; app still works online
     });
   });
+}
+
+/* ---------- Startup: restore saved draft if present, else start blank ---------- */
+if(!loadDraft()){
+  init();
 }
 
 /* ---------- Print safeguard: trim excess blank rows so the form stays on one page ---------- */
