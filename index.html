@@ -57,27 +57,67 @@
   }
   .menu-btn:active{ transform:scale(0.97); }
 
-  /* ---------- Floating action buttons ---------- */
+  /* ---------- Floating action buttons (speed dial) ---------- */
   .fab-stack{
-    position:fixed; right:16px; bottom:18px; z-index:25;
+    position:fixed; right:16px; bottom:18px; z-index:35;
     display:flex; flex-direction:column; align-items:flex-end; gap:12px;
   }
-  .fab{
-    display:flex; align-items:center; justify-content:center; gap:6px;
-    border:none; border-radius:999px; cursor:pointer; font-family:inherit;
-    box-shadow:0 4px 14px rgba(0,0,0,0.22);
+  .fab-item{
+    display:flex; align-items:center; gap:8px;
+    border:1.5px solid var(--accent); background:#fff; color:var(--accent);
+    font-family:inherit; font-weight:600; font-size:14px;
+    padding:10px 16px; border-radius:999px; cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,0.20);
+    opacity:0; transform:translateY(10px) scale(0.9); pointer-events:none;
+    transition:opacity .18s ease, transform .18s ease;
   }
-  .fab-print{
-    background:#fff; color:var(--accent); border:1.5px solid var(--accent);
-    width:52px; height:52px; font-size:22px;
+  .fab-stack.open .fab-item{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+  .fab-item:active{ transform:scale(0.95); }
+  .fab-main{
+    width:58px; height:58px; border:none; border-radius:50%;
+    background:var(--accent); color:#fff; font-size:26px; cursor:pointer;
+    box-shadow:0 4px 16px rgba(0,0,0,0.26);
+    transition:transform .2s ease, background .2s ease;
   }
-  .fab-print:active{ transform:scale(0.95); }
-  .fab-menu{
-    background:var(--accent); color:#fff;
-    padding:0 20px; height:56px; font-size:15px; font-weight:700;
-  }
-  .fab-menu:active{ transform:scale(0.97); }
+  .fab-stack.open .fab-main{ transform:rotate(45deg); background:var(--accent-dark); }
+  .fab-main:active{ transform:scale(0.94); }
+  .fab-stack.open .fab-main:active{ transform:rotate(45deg) scale(0.94); }
   @media print{ .fab-stack{ display:none !important; } }
+
+  /* ---------- Quick popups (items / dates / amounts) ---------- */
+  .popup-backdrop{
+    position:fixed; inset:0; background:rgba(20,25,40,0.4);
+    opacity:0; pointer-events:none; transition:opacity .18s ease; z-index:45;
+  }
+  .popup-backdrop.open{ opacity:1; pointer-events:auto; }
+  .quickpopup{
+    position:fixed; left:50%; bottom:0; transform:translate(-50%, 100%);
+    width:100%; max-width:420px; max-height:75vh; overflow-y:auto;
+    background:#fff; border-radius:18px 18px 0 0; z-index:46;
+    box-shadow:0 -6px 24px rgba(0,0,0,0.2);
+    padding:16px; transition:transform .22s ease;
+    -webkit-overflow-scrolling:touch;
+  }
+  .quickpopup.open{ transform:translate(-50%, 0); }
+  .quickpopup-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .quickpopup-head span{ font-weight:700; font-size:16px; color:var(--accent-dark); }
+  .quickpopup-close{
+    border:none; background:var(--panel); font-size:16px; cursor:pointer; color:var(--ink);
+    width:32px; height:32px; border-radius:50%;
+  }
+
+  /* ---------- Row management (delete / reorder) ---------- */
+  .row-manage-btn{
+    border:1.3px solid var(--border); background:#fff; border-radius:6px;
+    width:26px; height:22px; font-size:12px; cursor:pointer; color:#5a6479; padding:0;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .row-manage-btn.del{ color:var(--danger); border-color:var(--danger); }
+  col.manage{ width:0; }
+  th.manage-col, td.manage-col{ display:none; padding:2px; }
+  .manage-active col.manage{ width:15%; }
+  .manage-active th.manage-col, .manage-active td.manage-col{ display:table-cell; }
+  .manage-cell{ display:flex; gap:2px; justify-content:center; align-items:center; padding:2px; }
 
   /* ---------- Drawer ---------- */
   .backdrop{
@@ -283,10 +323,11 @@
 
   @media print{
     body{ background:#fff; padding:0; }
-    .topbar, .drawer, .backdrop{ display:none !important; }
+    .topbar, .drawer, .backdrop, .popup-backdrop, .quickpopup{ display:none !important; }
     .sheet-wrap{ padding:0; }
     .sheet{ box-shadow:none; border:none; width:100%; padding:8mm 10mm; }
     .print-hide-row{ display:none; }
+    th.manage-col, td.manage-col{ display:none !important; }
     @page{ size:A4 portrait; margin:10mm; }
   }
 
@@ -313,9 +354,80 @@
   </div>
 </header>
 
-<div class="fab-stack">
-  <button class="fab fab-print" onclick="doPrint()" title="พิมพ์ / บันทึกเป็น PDF">🖨️</button>
-  <button class="fab fab-menu" onclick="openDrawer()">☰ เมนู</button>
+<div class="fab-stack" id="fabStack">
+  <button class="fab-item" onclick="openItemPopup()">📦 รายการสินค้า</button>
+  <button class="fab-item" onclick="openDatePopup()">📅 วันที่</button>
+  <button class="fab-item" onclick="openAmountPopup()">💰 จำนวนเงิน</button>
+  <button class="fab-item" onclick="doPrint()">🖨️ พิมพ์</button>
+  <button class="fab-item" onclick="openDrawer(); toggleFab(false);">☰ เมนู</button>
+  <button class="fab-main" id="fabMain" onclick="toggleFab()">+</button>
+</div>
+
+<div class="popup-backdrop" id="popupBackdrop" onclick="closeAllPopups()"></div>
+
+<div class="quickpopup" id="popup-items">
+  <div class="quickpopup-head">
+    <span>📦 รายการสินค้า</span>
+    <button class="quickpopup-close" onclick="closeAllPopups()">✕</button>
+  </div>
+  <p class="panel-label">แตะเพื่อเพิ่มรายการ</p>
+  <div class="chip-grid">
+    <button class="chip-btn" onclick="quickAdd('ผลไม้')">ผลไม้</button>
+    <button class="chip-btn" onclick="quickAdd('โครงไก่')">โครงไก่</button>
+    <button class="chip-btn" onclick="quickAdd('ไก่สด')">ไก่สด</button>
+    <button class="chip-btn" onclick="quickAdd('หมูสด')">หมูสด</button>
+    <button class="chip-btn" onclick="quickAdd('ดอกไม้')">ดอกไม้</button>
+    <button class="chip-btn" onclick="quickAdd('แกงถุง')">แกงถุง</button>
+    <button class="chip-btn" onclick="quickAdd('ซี่โครงหมู')">ซี่โครงหมู</button>
+    <button class="chip-btn" onclick="quickAdd('ลูกชิ้น')">ลูกชิ้น</button>
+    <button class="chip-btn" onclick="quickAdd('ผักสด')">ผักสด</button>
+    <button class="chip-btn" onclick="quickAdd('เครื่องในไก่')">เครื่องในไก่</button>
+    <button class="chip-btn" onclick="quickAdd('ไส้หมู')">ไส้หมู</button>
+    <button class="chip-btn" onclick="quickAdd('ปลาแห้ง')">ปลาแห้ง</button>
+    <button class="chip-btn" onclick="quickAdd('ปลาทู')">ปลาทู</button>
+  </div>
+  <p class="panel-label">พิมพ์รายการเอง</p>
+  <div class="custom-add">
+    <input type="text" id="customItem" placeholder="ชื่อรายการ..." onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAddCustom();}">
+    <button class="chip-btn" onclick="quickAddCustom()">เพิ่ม</button>
+  </div>
+  <div class="divider"></div>
+  <button class="wide-btn" onclick="duplicateLastRow()">⧉ คัดลอกแถวล่าสุด</button>
+  <button class="wide-btn random" style="margin-bottom:0;" onclick="randomizeOneItem()">🎲 สุ่มรายการ (ทีละแถว)</button>
+</div>
+
+<div class="quickpopup" id="popup-dates">
+  <div class="quickpopup-head">
+    <span>📅 เลือกวันที่</span>
+    <button class="quickpopup-close" onclick="closeAllPopups()">✕</button>
+  </div>
+  <p class="panel-label">เลือกวันที่ลัด</p>
+  <div class="chip-grid">
+    <button class="chip-btn" onclick="quickSetDate(0)">วันนี้</button>
+    <button class="chip-btn" onclick="quickSetDate(1)">เมื่อวาน</button>
+    <button class="chip-btn" onclick="quickSetDate(2)">2 วันก่อน</button>
+    <button class="chip-btn" onclick="quickSetDate(3)">3 วันก่อน</button>
+    <button class="chip-btn" onclick="quickSetDate(7)">7 วันก่อน</button>
+  </div>
+  <p class="panel-label">หรือเลือกวันที่เอง</p>
+  <div class="custom-add">
+    <input type="date" id="customDate">
+    <button class="chip-btn" onclick="quickSetCustomDate()">ใส่</button>
+  </div>
+  <div class="preview-line" id="datePreview" style="margin-bottom:0;">แตะปุ่มลัดหรือเลือกวันที่ เพื่อใส่ในแถวว่างถัดไป</div>
+</div>
+
+<div class="quickpopup" id="popup-amounts">
+  <div class="quickpopup-head">
+    <span>💰 ใส่จำนวนเงิน</span>
+    <button class="quickpopup-close" onclick="closeAllPopups()">✕</button>
+  </div>
+  <p class="panel-label">พิมพ์จำนวนเงิน</p>
+  <div class="custom-add">
+    <input type="number" step="0.01" id="customAmount" placeholder="ใส่จำนวนเงิน..." oninput="previewCustomAmount()" onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAmountCustom();}">
+    <button class="chip-btn" onclick="quickAmountCustom()">ใส่</button>
+  </div>
+  <div class="preview-line" id="amountPreview" style="margin-bottom:0;">พิมพ์จำนวนเงิน จะโชว์ตัวอย่างยอดเป็นตัวอักษรตรงนี้</div>
 </div>
 
 <div class="backdrop" id="backdrop" onclick="closeDrawer()"></div>
@@ -326,80 +438,11 @@
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
   </div>
   <div class="drawer-tabs">
-    <button class="tab-btn active" id="tabBtn-items" onclick="switchTab('items')">รายการสินค้า</button>
-    <button class="tab-btn" id="tabBtn-dates" onclick="switchTab('dates')">วันที่</button>
-    <button class="tab-btn" id="tabBtn-amounts" onclick="switchTab('amounts')">จำนวนเงิน</button>
-    <button class="tab-btn" id="tabBtn-history" onclick="switchTab('history')">ประวัติ</button>
+    <button class="tab-btn active" id="tabBtn-history" onclick="switchTab('history')">ประวัติ</button>
     <button class="tab-btn" id="tabBtn-tools" onclick="switchTab('tools')">เครื่องมือ</button>
   </div>
 
-  <div class="drawer-panel" id="panel-items">
-    <p class="panel-label">แตะเพื่อเพิ่มรายการ</p>
-    <div class="chip-grid">
-      <button class="chip-btn" onclick="quickAdd('ผลไม้')">ผลไม้</button>
-      <button class="chip-btn" onclick="quickAdd('โครงไก่')">โครงไก่</button>
-      <button class="chip-btn" onclick="quickAdd('ไก่สด')">ไก่สด</button>
-      <button class="chip-btn" onclick="quickAdd('หมูสด')">หมูสด</button>
-      <button class="chip-btn" onclick="quickAdd('ดอกไม้')">ดอกไม้</button>
-      <button class="chip-btn" onclick="quickAdd('แกงถุง')">แกงถุง</button>
-      <button class="chip-btn" onclick="quickAdd('ซี่โครงหมู')">ซี่โครงหมู</button>
-      <button class="chip-btn" onclick="quickAdd('ลูกชิ้น')">ลูกชิ้น</button>
-      <button class="chip-btn" onclick="quickAdd('ผักสด')">ผักสด</button>
-      <button class="chip-btn" onclick="quickAdd('เครื่องในไก่')">เครื่องในไก่</button>
-      <button class="chip-btn" onclick="quickAdd('ไส้หมู')">ไส้หมู</button>
-      <button class="chip-btn" onclick="quickAdd('ปลาแห้ง')">ปลาแห้ง</button>
-      <button class="chip-btn" onclick="quickAdd('ปลาทู')">ปลาทู</button>
-    </div>
-
-    <p class="panel-label">พิมพ์รายการเอง</p>
-    <div class="custom-add">
-      <input type="text" id="customItem" placeholder="ชื่อรายการ..." onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAddCustom();}">
-      <button class="chip-btn" onclick="quickAddCustom()">เพิ่ม</button>
-    </div>
-
-    <div class="divider"></div>
-    <button class="wide-btn" onclick="duplicateLastRow()">⧉ คัดลอกแถวล่าสุด</button>
-    <button class="wide-btn random" onclick="randomizeOneItem()">🎲 สุ่มรายการ (ทีละแถว)</button>
-  </div>
-
-  <div class="drawer-panel hidden" id="panel-dates">
-    <p class="panel-label">เลือกวันที่ลัด</p>
-    <div class="chip-grid">
-      <button class="chip-btn" onclick="quickSetDate(0)">วันนี้</button>
-      <button class="chip-btn" onclick="quickSetDate(1)">เมื่อวาน</button>
-      <button class="chip-btn" onclick="quickSetDate(2)">2 วันก่อน</button>
-      <button class="chip-btn" onclick="quickSetDate(3)">3 วันก่อน</button>
-      <button class="chip-btn" onclick="quickSetDate(7)">7 วันก่อน</button>
-    </div>
-    <p class="panel-label">หรือเลือกวันที่เอง</p>
-    <div class="custom-add">
-      <input type="date" id="customDate">
-      <button class="chip-btn" onclick="quickSetCustomDate()">ใส่</button>
-    </div>
-    <div class="preview-line" id="datePreview">แตะปุ่มลัดหรือเลือกวันที่ เพื่อใส่ในแถวว่างถัดไป</div>
-  </div>
-
-  <div class="drawer-panel hidden" id="panel-amounts">
-    <p class="panel-label">ใส่จำนวนเงินลัด</p>
-    <div class="chip-grid">
-      <button class="chip-btn" onclick="quickAmount(20)">20 บาท</button>
-      <button class="chip-btn" onclick="quickAmount(50)">50 บาท</button>
-      <button class="chip-btn" onclick="quickAmount(100)">100 บาท</button>
-      <button class="chip-btn" onclick="quickAmount(150)">150 บาท</button>
-      <button class="chip-btn" onclick="quickAmount(200)">200 บาท</button>
-      <button class="chip-btn" onclick="quickAmount(300)">300 บาท</button>
-      <button class="chip-btn" onclick="quickAmount(500)">500 บาท</button>
-      <button class="chip-btn" onclick="quickAmount(1000)">1,000 บาท</button>
-    </div>
-    <p class="panel-label">หรือพิมพ์จำนวนเอง</p>
-    <div class="custom-add">
-      <input type="number" step="0.01" id="customAmount" placeholder="ใส่จำนวนเอง..." oninput="previewCustomAmount()">
-      <button class="chip-btn" onclick="quickAmountCustom()">เพิ่ม</button>
-    </div>
-    <div class="preview-line" id="amountPreview">พิมพ์หรือแตะปุ่มลัด จะโชว์ตัวอย่างยอดเป็นตัวอักษรตรงนี้</div>
-  </div>
-
-  <div class="drawer-panel hidden" id="panel-history">
+  <div class="drawer-panel" id="panel-history">
     <p class="panel-label">ประวัติที่บันทึกไว้ในเครื่องนี้</p>
     <button class="wide-btn" onclick="manualSaveToHistory()">💾 บันทึกฟอร์มปัจจุบันเข้าประวัติ</button>
     <div class="divider"></div>
@@ -409,6 +452,7 @@
   <div class="drawer-panel hidden" id="panel-tools">
     <p class="panel-label">จัดการแถว</p>
     <button class="wide-btn" onclick="addRow()">+ เพิ่มแถว</button>
+    <button class="wide-btn" id="manageToggleBtn" onclick="toggleManageMode()">🗑️ ลบ/ย้ายแถว</button>
 
     <p class="panel-label">แบ่งยอดอัตโนมัติ</p>
     <div class="avg-box">
@@ -445,9 +489,9 @@
     </div>
 
     <div class="table-wrap">
-      <table>
+      <table id="mainTable">
         <colgroup>
-          <col class="date"><col class="desc"><col class="amount"><col class="remark">
+          <col class="date"><col class="desc"><col class="amount"><col class="remark"><col class="manage">
         </colgroup>
         <thead>
           <tr>
@@ -455,6 +499,7 @@
             <th>รายละเอียดรายจ่าย</th>
             <th>จำนวนเงิน</th>
             <th>หมายเหตุ</th>
+            <th class="manage-col">จัดการ</th>
           </tr>
         </thead>
         <tbody id="rows"></tbody>
@@ -504,8 +549,31 @@ function closeDrawer(){
   document.getElementById('drawer').classList.remove('open');
   document.getElementById('backdrop').classList.remove('open');
 }
+
+/* ---------- Floating speed-dial menu ---------- */
+function toggleFab(force){
+  const stack = document.getElementById('fabStack');
+  const open = typeof force === 'boolean' ? force : !stack.classList.contains('open');
+  stack.classList.toggle('open', open);
+}
+
+/* ---------- Quick popups (items / dates / amounts) ---------- */
+function closeAllPopups(){
+  document.querySelectorAll('.quickpopup').forEach(p => p.classList.remove('open'));
+  document.getElementById('popupBackdrop').classList.remove('open');
+  toggleFab(false);
+}
+function openPopup(id){
+  closeAllPopups();
+  toggleFab(false);
+  document.getElementById(id).classList.add('open');
+  document.getElementById('popupBackdrop').classList.add('open');
+}
+function openItemPopup(){ openPopup('popup-items'); }
+function openDatePopup(){ openPopup('popup-dates'); }
+function openAmountPopup(){ openPopup('popup-amounts'); }
 function switchTab(tab){
-  const tabs = ['items','dates','amounts','history','tools'];
+  const tabs = ['history','tools'];
   tabs.forEach(t=>{
     document.getElementById('panel-' + t).classList.toggle('hidden', t !== tab);
     document.getElementById('tabBtn-' + t).classList.toggle('active', t === tab);
@@ -525,10 +593,17 @@ function todayISO(){
 function makeRow(){
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><input type="text" class="date-input" value="" placeholder="" readonly onclick="openDrawer(); switchTab('dates');"></td>
+    <td><input type="text" class="date-input" value="" placeholder="" readonly onclick="openDatePopup();"></td>
     <td class="desc"><input type="text" placeholder=""></td>
     <td class="amount"><input type="number" step="0.01" placeholder="" oninput="updateTotal()"></td>
     <td><input type="text" placeholder=""></td>
+    <td class="manage-col">
+      <div class="manage-cell">
+        <button type="button" class="row-manage-btn" onclick="moveRowUp(this)">▲</button>
+        <button type="button" class="row-manage-btn" onclick="moveRowDown(this)">▼</button>
+        <button type="button" class="row-manage-btn del" onclick="deleteRow(this)">✕</button>
+      </div>
+    </td>
   `;
   tbody.appendChild(tr);
 }
@@ -537,6 +612,34 @@ function addRow(){ makeRow(); }
 
 function init(){
   for(let i=0;i<ROW_COUNT_DEFAULT;i++) makeRow();
+}
+
+/* ---------- Row management: delete / reorder ---------- */
+function toggleManageMode(){
+  const table = document.getElementById('mainTable');
+  const active = table.classList.toggle('manage-active');
+  const btn = document.getElementById('manageToggleBtn');
+  btn.textContent = active ? '✅ เสร็จสิ้น' : '🗑️ ลบ/ย้ายแถว';
+}
+function deleteRow(button){
+  const tr = button.closest('tr');
+  if(tbody.querySelectorAll('tr').length <= 1){
+    alert('ต้องมีอย่างน้อย 1 แถวในตาราง');
+    return;
+  }
+  tr.remove();
+  updateTotal();
+  saveDraft();
+}
+function moveRowUp(button){
+  const tr = button.closest('tr');
+  const prev = tr.previousElementSibling;
+  if(prev){ tbody.insertBefore(tr, prev); saveDraft(); }
+}
+function moveRowDown(button){
+  const tr = button.closest('tr');
+  const next = tr.nextElementSibling;
+  if(next){ tbody.insertBefore(next, tr); saveDraft(); }
 }
 
 /* ---------- Thai baht text ---------- */
@@ -883,7 +986,13 @@ function doPrint(){
     if(!proceed) return;
   }
   saveToHistory();
+  // best-effort: blank the title in case the browser prints it in the header;
+  // this cannot remove the browser's own URL/date/page-number footer, which
+  // is controlled entirely by the browser/app doing the printing, not the page.
+  const originalTitle = document.title;
+  document.title = ' ';
   window.print();
+  setTimeout(() => { document.title = originalTitle; }, 500);
 }
 
 /* ---------- History (saved locally on this device) ---------- */
