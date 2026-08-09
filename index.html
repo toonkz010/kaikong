@@ -414,7 +414,8 @@
     <input type="date" id="customDate">
     <button class="chip-btn" onclick="quickSetCustomDate()">ใส่</button>
   </div>
-  <div class="preview-line" id="datePreview" style="margin-bottom:0;">แตะปุ่มลัดหรือเลือกวันที่ เพื่อใส่ในแถวว่างถัดไป</div>
+  <div class="preview-line" id="datePreview" style="margin-bottom:10px;">แตะปุ่มลัดหรือเลือกวันที่ เพื่อใส่ในแถวว่างถัดไป</div>
+  <button class="wide-btn danger" id="dateClearBtn" style="display:none; margin-bottom:0;" onclick="clearActiveRowDate()">🗑️ ล้างวันที่แถวนี้</button>
 </div>
 
 <div class="quickpopup" id="popup-amounts">
@@ -558,6 +559,7 @@ function toggleFab(force){
 }
 
 /* ---------- Quick popups (items / dates / amounts) ---------- */
+let activeDateRow = null;
 function closeAllPopups(){
   document.querySelectorAll('.quickpopup').forEach(p => p.classList.remove('open'));
   document.getElementById('popupBackdrop').classList.remove('open');
@@ -570,7 +572,24 @@ function openPopup(id){
   document.getElementById('popupBackdrop').classList.add('open');
 }
 function openItemPopup(){ openPopup('popup-items'); }
-function openDatePopup(){ openPopup('popup-dates'); }
+function openDatePopup(rowInput){
+  // if opened by tapping a specific row's date cell, edit/clear THAT row;
+  // if opened from the floating menu (no argument), fill the next empty row instead
+  activeDateRow = rowInput ? rowInput.closest('tr') : null;
+  const clearBtn = document.getElementById('dateClearBtn');
+  clearBtn.style.display = activeDateRow ? 'block' : 'none';
+  document.getElementById('datePreview').textContent = activeDateRow
+    ? 'กำลังแก้ไขวันที่ของแถวนี้ — เลือกวันใหม่หรือกด "ล้างวันที่"'
+    : 'แตะปุ่มลัดหรือเลือกวันที่ เพื่อใส่ในแถวว่างถัดไป';
+  document.getElementById('datePreview').classList.remove('ok');
+  openPopup('popup-dates');
+}
+function clearActiveRowDate(){
+  if(!activeDateRow) return;
+  activeDateRow.querySelector('.date-input').value = '';
+  saveDraft();
+  closeAllPopups();
+}
 function openAmountPopup(){ openPopup('popup-amounts'); }
 function switchTab(tab){
   const tabs = ['history','tools'];
@@ -590,22 +609,31 @@ function todayISO(){
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function makeRow(){
+function createRowElement(){
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><input type="text" class="date-input" value="" placeholder="" readonly onclick="openDatePopup();"></td>
+    <td><input type="text" class="date-input" value="" placeholder="" readonly onclick="openDatePopup(this);"></td>
     <td class="desc"><input type="text" placeholder=""></td>
     <td class="amount"><input type="number" step="0.01" placeholder="" oninput="updateTotal()"></td>
     <td><input type="text" placeholder=""></td>
     <td class="manage-col">
       <div class="manage-cell">
+        <button type="button" class="row-manage-btn" onclick="insertRowAbove(this)" title="แทรกแถวใหม่เหนือแถวนี้">➕</button>
         <button type="button" class="row-manage-btn" onclick="moveRowUp(this)">▲</button>
         <button type="button" class="row-manage-btn" onclick="moveRowDown(this)">▼</button>
         <button type="button" class="row-manage-btn del" onclick="deleteRow(this)">✕</button>
       </div>
     </td>
   `;
-  tbody.appendChild(tr);
+  return tr;
+}
+function makeRow(){
+  tbody.appendChild(createRowElement());
+}
+function insertRowAbove(button){
+  const tr = button.closest('tr');
+  tbody.insertBefore(createRowElement(), tr);
+  saveDraft();
 }
 
 function addRow(){ makeRow(); }
@@ -743,17 +771,21 @@ function quickAddCustom(){
 
 /* ---------- Quick date insert (no auto-fill; explicit pick only) ---------- */
 function insertDate(isoDate){
-  const dateInputs = tbody.querySelectorAll('td .date-input');
-  let target = null;
-  dateInputs.forEach(inp=>{ if(!target && inp.value.trim()==='') target = inp; });
-  if(!target){
-    makeRow();
-    const all = tbody.querySelectorAll('td .date-input');
-    target = all[all.length-1];
+  let target;
+  if(activeDateRow){
+    target = activeDateRow.querySelector('.date-input');
+  } else {
+    const dateInputs = tbody.querySelectorAll('td .date-input');
+    dateInputs.forEach(inp=>{ if(!target && inp.value.trim()==='') target = inp; });
+    if(!target){
+      makeRow();
+      const all = tbody.querySelectorAll('td .date-input');
+      target = all[all.length-1];
+    }
   }
   const label = new Date(isoDate + 'T00:00:00').toLocaleDateString('th-TH-u-ca-buddhist', {day:'2-digit', month:'2-digit', year:'numeric'});
   target.value = label;
-  document.getElementById('datePreview').textContent = `ใส่วันที่ ${label} ในแถวว่างถัดไปแล้ว`;
+  document.getElementById('datePreview').textContent = `ใส่วันที่ ${label} แล้ว`;
   document.getElementById('datePreview').classList.add('ok');
   saveDraft();
 }
