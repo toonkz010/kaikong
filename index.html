@@ -59,7 +59,7 @@
 
   /* ---------- Floating action buttons (speed dial) ---------- */
   .fab-stack{
-    position:fixed; right:16px; bottom:18px; z-index:35;
+    position:fixed; right:16px; bottom:calc(18px + env(safe-area-inset-bottom)); z-index:35;
     display:flex; flex-direction:column; align-items:flex-end; gap:12px;
   }
   .fab-item{
@@ -82,23 +82,20 @@
   .fab-stack.open .fab-main{ transform:rotate(45deg); background:var(--accent-dark); }
   .fab-main:active{ transform:scale(0.94); }
   .fab-stack.open .fab-main:active{ transform:rotate(45deg) scale(0.94); }
-  @media print{ .fab-stack, .pdf-fab{ display:none !important; } }
+  @media print{ .fab-stack, .pdf-viewer{ display:none !important; } }
 
-  /* ---------- Always-visible mobile PDF/share button ---------- */
-  .pdf-fab{
-    position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); z-index:38;
-    display:flex; align-items:center; justify-content:center; gap:8px;
-    min-height:56px; padding:10px 18px; border:1.5px solid var(--accent);
-    border-radius:16px; background:var(--accent); color:#fff;
-    font-family:inherit; font-size:16px; font-weight:700; cursor:pointer;
-    box-shadow:0 6px 20px rgba(0,0,0,.24);
-    -webkit-tap-highlight-color:transparent;
-  }
-  .pdf-fab:active{ transform:scale(.98); }
-  body{ padding-bottom:92px; }
-  @media (min-width:700px){
-    .pdf-fab{ left:auto; right:18px; width:280px; }
-  }
+
+  /* ---------- PDF viewer ---------- */
+  .pdf-viewer{ position:fixed; inset:0; z-index:80; display:none; }
+  .pdf-viewer.open{ display:block; }
+  .pdf-viewer-backdrop{ position:absolute; inset:0; background:rgba(15,20,35,.62); }
+  .pdf-viewer-panel{ position:absolute; inset:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0; display:flex; flex-direction:column; background:#fff; }
+  .pdf-viewer-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-bottom:1px solid #e4e7ef; background:#fff; }
+  .pdf-viewer-body{ flex:1; min-height:0; background:#eef1f6; }
+  .pdf-viewer-body iframe{ width:100%; height:100%; border:0; background:#fff; }
+  .pdf-viewer-actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); border-top:1px solid #e4e7ef; background:#fff; }
+  @media (min-width:700px){ .pdf-viewer-panel{ width:min(900px,100%); left:50%; right:auto; transform:translateX(-50%); top:18px; bottom:18px; border-radius:18px; overflow:hidden; box-shadow:0 18px 60px rgba(0,0,0,.28); } }
+  @media (max-width:480px){ .pdf-viewer-actions{ grid-template-columns:1fr; } }
 
   /* ---------- Quick popups (items / dates / amounts) ---------- */
   .popup-backdrop{
@@ -375,12 +372,29 @@
   <button class="fab-item" onclick="openDatePopup()">📅 วันที่</button>
   <button class="fab-item" onclick="openAmountPopup()">💰 จำนวนเงิน</button>
     <button class="fab-item" onclick="openDrawer(); toggleFab(false);">☰ เมนู</button>
+  <button class="fab-item" onclick="exportPDF(); toggleFab(false);">📄 สร้าง PDF / แชร์</button>
+  <button class="fab-item" onclick="viewPDF(); toggleFab(false);">👁️ ดู PDF</button>
   <button class="fab-main" id="fabMain" onclick="toggleFab()">+</button>
 </div>
 
-<button class="pdf-fab" type="button" id="pdfFab" onclick="exportPDF()">📄 สร้าง PDF / แชร์ เพื่อพิมพ์</button>
-
 <div class="popup-backdrop" id="popupBackdrop" onclick="closeAllPopups()"></div>
+
+<div class="pdf-viewer" id="pdfViewer" aria-hidden="true">
+  <div class="pdf-viewer-backdrop" onclick="closePDFViewer()"></div>
+  <section class="pdf-viewer-panel" role="dialog" aria-modal="true" aria-label="ดู PDF">
+    <div class="pdf-viewer-head">
+      <strong>📄 ดู PDF</strong>
+      <button type="button" class="quickpopup-close" onclick="closePDFViewer()">✕</button>
+    </div>
+    <div class="pdf-viewer-body">
+      <iframe id="pdfViewerFrame" title="ตัวอย่าง PDF"></iframe>
+    </div>
+    <div class="pdf-viewer-actions">
+      <button type="button" class="wide-btn" onclick="shareCurrentPDF()">📤 แชร์ / พิมพ์</button>
+      <button type="button" class="wide-btn" onclick="downloadCurrentPDF()">⬇️ บันทึก PDF</button>
+    </div>
+  </section>
+</div>
 
 <div class="quickpopup" id="popup-items">
   <div class="quickpopup-head">
@@ -481,7 +495,6 @@
 
     <div class="divider"></div>
     <button class="wide-btn danger" onclick="clearForm()">ล้างข้อมูลทั้งหมด</button>
-    <button class="wide-btn primary" onclick="exportPDF()">📄 สร้าง PDF / แชร์เพื่อพิมพ์</button>
   </div>
 </aside>
 
@@ -1227,37 +1240,94 @@ async function createCertificatePDF(){
   return makeImagePdf(jpegs,1240,1754);
 }
 
-async function exportPDF(){
+let lastPdfBlob = null;
+let lastPdfUrl = null;
+let lastPdfFileName = '';
+
+async function buildCurrentPDF(){
   const issues = validateBeforePrint();
   if(issues.length > 0){
     const proceed = confirm('ตรวจพบข้อมูลที่อาจไม่ครบ:\n\n' + issues.join('\n') + '\n\nต้องการสร้าง PDF ต่อหรือไม่?');
-    if(!proceed) return;
+    if(!proceed) return null;
   }
   saveToHistory();
-  const btn = document.getElementById('pdfFab');
-  const oldText = btn ? btn.textContent : '';
-  if(btn){ btn.disabled=true; btn.textContent='⏳ กำลังสร้าง PDF...'; }
+  const blob = await createCertificatePDF();
+  lastPdfBlob = blob;
+  lastPdfFileName = formatPdfFileName();
+  if(lastPdfUrl) URL.revokeObjectURL(lastPdfUrl);
+  lastPdfUrl = URL.createObjectURL(blob);
+  return {blob, filename:lastPdfFileName, url:lastPdfUrl};
+}
+
+async function exportPDF(){
   try{
-    const blob = await createCertificatePDF();
-    const filename = formatPdfFileName();
-    const file = new File([blob], filename, {type:'application/pdf'});
+    const result = await buildCurrentPDF();
+    if(!result) return;
+    const file = new File([result.blob], result.filename, {type:'application/pdf'});
     if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
       await navigator.share({files:[file], title:'ใบรับรองแทนใบเสร็จรับเงิน', text:'ไฟล์ PDF สำหรับแชร์หรือพิมพ์'});
       return;
     }
-    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),5000);
-    alert('สร้าง PDF เรียบร้อยแล้ว ไฟล์ถูกบันทึกลงอุปกรณ์แล้ว กรุณาเปิดไฟล์เพื่อแชร์หรือพิมพ์');
+    a.href=result.url; a.download=result.filename; document.body.appendChild(a); a.click(); a.remove();
+    alert('สร้าง PDF เรียบร้อยแล้ว ไฟล์ถูกบันทึกลงอุปกรณ์แล้ว');
   }catch(err){
     if(err && err.name === 'AbortError') return;
     console.error(err);
     alert('สร้าง PDF ไม่สำเร็จ กรุณาลองอีกครั้ง');
-  }finally{
-    if(btn){ btn.disabled=false; btn.textContent=oldText; }
   }
 }
+
+async function viewPDF(){
+  try{
+    if(!lastPdfBlob){
+      const result = await buildCurrentPDF();
+      if(!result) return;
+    }
+    document.getElementById('pdfViewerFrame').src = lastPdfUrl + '#zoom=page-width';
+    const viewer = document.getElementById('pdfViewer');
+    viewer.classList.add('open');
+    viewer.setAttribute('aria-hidden','false');
+  }catch(err){
+    console.error(err);
+    alert('เปิดดู PDF ไม่สำเร็จ กรุณาลองอีกครั้ง');
+  }
+}
+
+function closePDFViewer(){
+  const viewer = document.getElementById('pdfViewer');
+  const frame = document.getElementById('pdfViewerFrame');
+  viewer.classList.remove('open');
+  viewer.setAttribute('aria-hidden','true');
+  frame.src='about:blank';
+}
+
+async function shareCurrentPDF(){
+  try{
+    if(!lastPdfBlob){
+      const result = await buildCurrentPDF();
+      if(!result) return;
+    }
+    const file = new File([lastPdfBlob], lastPdfFileName || formatPdfFileName(), {type:'application/pdf'});
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:'ใบรับรองแทนใบเสร็จรับเงิน', text:'ไฟล์ PDF สำหรับแชร์หรือพิมพ์'});
+    }else{
+      downloadCurrentPDF();
+    }
+  }catch(err){
+    if(err && err.name === 'AbortError') return;
+    console.error(err);
+    alert('แชร์ PDF ไม่สำเร็จ');
+  }
+}
+
+function downloadCurrentPDF(){
+  if(!lastPdfBlob || !lastPdfUrl){ alert('ยังไม่มี PDF กรุณาสร้าง PDF ก่อน'); return; }
+  const a=document.createElement('a');
+  a.href=lastPdfUrl; a.download=lastPdfFileName || formatPdfFileName();
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
 
 /* ---------- History (saved locally on this device) ---------- */
 const HISTORY_KEY = 'baipan_history_v1';
