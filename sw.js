@@ -1,4 +1,4 @@
-const CACHE_NAME = 'baipan-form-v2-ios-print';
+const CACHE_NAME = 'baipan-form-v3-safari-print';
 const CORE_ASSETS = [
   './',
   './index.html',
