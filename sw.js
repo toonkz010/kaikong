@@ -1,4 +1,4 @@
-const CACHE_NAME = 'baipan-form-v1';
+const CACHE_NAME = 'baipan-form-v2-ios-print';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -34,8 +34,8 @@ self.addEventListener('fetch', (event) => {
       .then((response) => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
-          // only cache same-origin GET requests
-          if(event.request.method === 'GET' && event.request.url.startsWith(self.location.origin)){
+          // only cache successful same-origin GET requests
+          if(event.request.method === 'GET' && response.ok && event.request.url.startsWith(self.location.origin)){
             cache.put(event.request, copy);
           }
         });

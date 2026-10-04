@@ -351,6 +351,7 @@
 <header class="topbar">
   <div class="topbar-inner">
     <span class="topbar-title">ใบรับรองแทนใบเสร็จรับเงิน</span>
+    <button class="menu-btn" type="button" onclick="doPrint()">🖨️ พิมพ์</button>
   </div>
 </header>
 
@@ -1011,20 +1012,152 @@ function validateBeforePrint(){
   if(payer && payer.value.trim() === '') issues.push('ยังไม่ได้กรอกชื่อในช่องลงชื่อผู้เบิกจ่าย');
   return issues;
 }
+function escapeHtml(value){
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+function isIOSDevice(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function isStandaloneMode(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function buildPrintDocument(){
+  const f = getFieldMap();
+  const rows = getRowsData().filter(r =>
+    r.date.trim() !== '' || r.desc.trim() !== '' || r.amount.trim() !== '' || r.remark.trim() !== ''
+  );
+  // Keep two blank lines after the last filled item, but never fewer than 5 rows.
+  const targetRows = Math.max(5, Math.min(12, rows.length + 2));
+  while(rows.length < targetRows) rows.push({date:'', desc:'', amount:'', remark:''});
+
+  const sum = rows.reduce((total, r) => total + (parseFloat(r.amount) || 0), 0);
+  const totalText = sum.toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const baht = sum > 0 ? `( ${thaiBahtText(sum)} )` : '( - )';
+  const rowHtml = rows.map(r => `
+    <tr>
+      <td>${escapeHtml(r.date)}</td>
+      <td class="left">${escapeHtml(r.desc)}</td>
+      <td class="right">${r.amount ? escapeHtml(Number(r.amount).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})) : ''}</td>
+      <td>${escapeHtml(r.remark)}</td>
+    </tr>`).join('');
+
+  const iOS = isIOSDevice();
+  const standalone = isStandaloneMode();
+  const deviceNote = iOS
+    ? (standalone ? 'iPhone: หากหน้าต่างพิมพ์ไม่เปิดอัตโนมัติ ให้แตะปุ่ม “พิมพ์เอกสาร” ด้านบน' : 'iPhone: เลือกเครื่องพิมพ์ AirPrint จากหน้าต่างพิมพ์')
+    : 'ตรวจสอบตัวอย่างก่อนพิมพ์ แล้วกด “พิมพ์เอกสาร”';
+
+  return `<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ใบรับรองแทนใบเสร็จรับเงิน</title>
+<style>
+  *{box-sizing:border-box} html,body{margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Sarabun","Tahoma",sans-serif;color:#111;background:#eef0f3;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .toolbar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #ddd;padding:10px max(12px,env(safe-area-inset-right)) 10px max(12px,env(safe-area-inset-left));display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .toolbar button{appearance:none;border:0;border-radius:12px;padding:12px 18px;font-size:16px;font-weight:700;cursor:pointer;background:#2f4b8c;color:#fff}
+  .toolbar button.secondary{background:#fff;color:#2f4b8c;border:1px solid #2f4b8c}
+  .hint{width:100%;text-align:center;font-size:12px;color:#596273}
+  .page{width:210mm;min-height:297mm;margin:16px auto;background:white;padding:16mm 16mm 14mm;box-shadow:0 3px 18px rgba(0,0,0,.12)}
+  .header{text-align:center;margin-bottom:10px}.title{font-size:20px;font-weight:700;margin:0 0 5px}.shop{font-size:21px;font-weight:700;color:#1c2a4a;margin:0 0 3px}.line{font-size:13px;margin:2px 0}.buyer{display:flex;gap:6px;align-items:flex-end;margin:14px 0 8px;font-size:13px}.fillline{display:inline-block;border-bottom:1px dotted #555;min-height:1.25em;padding:0 4px}.buyer .fillline{flex:1}
+  table{width:100%;border-collapse:collapse;border:1.3px solid #333;margin-top:6px;table-layout:fixed}th,td{border:1px solid #555;font-size:12px;padding:5px 4px;text-align:center;height:30px;vertical-align:middle;overflow-wrap:anywhere}th{font-weight:700;border-bottom:1.8px solid #333}.date{width:18%}.desc{width:42%}.amt{width:20%}.remark{width:20%}.left{text-align:left}.right{text-align:right;padding-right:8px}
+  .baht{text-align:center;margin-top:10px}.baht span{display:inline-block;min-width:70%;border:1px dashed #666;border-radius:5px;padding:6px 12px;font-size:14px;font-weight:700}.total{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:8px;font-size:13px;font-weight:700}.total span:last-child{border:1px solid #555;min-width:110px;text-align:right;padding:5px 10px}
+  .cert{margin-top:17px;font-size:12px;line-height:2}.sign{margin-top:24px;font-size:12px}.sign-row{margin:20px 0}.sigline{height:30px;border-bottom:1px solid #555;margin-bottom:6px}
+  @media(max-width:700px){.page{width:100%;min-height:0;margin:0;padding:10mm 6mm;box-shadow:none}.toolbar{position:relative}.title{font-size:18px}.shop{font-size:19px}th,td{font-size:11px;padding:4px 2px}}
+  @media print{body{background:#fff}.toolbar{display:none!important}.page{width:auto;min-height:0;margin:0;box-shadow:none;padding:0}@page{size:A4 portrait;margin:10mm}}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <button id="printBtn" onclick="window.print()">🖨️ พิมพ์เอกสาร</button>
+  <button class="secondary" onclick="window.close()">← กลับไปแก้ไข</button>
+  <div class="hint">${escapeHtml(deviceNote)}</div>
+</div>
+<main class="page">
+  <div class="header">
+    <p class="title">ใบรับรองแทนใบเสร็จรับเงิน</p>
+    <p class="shop">${escapeHtml(f.shopName || '')}</p>
+    <p class="line">${escapeHtml(f.houseNo || '')} หมู่ที่ ${escapeHtml(f.moo || '')} ตำบล${escapeHtml(f.tambon || '')} อำเภอ${escapeHtml(f.amphoe || '')} จังหวัด${escapeHtml(f.changwat || '')} ${escapeHtml(f.zipcode || '')}</p>
+    <p class="line">โทร. ${escapeHtml(f.phone || '')}</p>
+    <p class="line">เลขประจำตัวผู้เสียภาษีอากร ${escapeHtml(f.taxId || '')}</p>
+  </div>
+  <div class="buyer"><span class="fillline">${escapeHtml(f.buyerName || '')}</span><span>ผู้ซื้อ/ผู้รับบริการ</span></div>
+  <table>
+    <colgroup><col class="date"><col class="desc"><col class="amt"><col class="remark"></colgroup>
+    <thead><tr><th>วัน/เดือน/ปี</th><th>รายละเอียดรายจ่าย</th><th>จำนวนเงิน</th><th>หมายเหตุ</th></tr></thead>
+    <tbody>${rowHtml}</tbody>
+  </table>
+  <div class="baht"><span>${escapeHtml(baht)}</span></div>
+  <div class="total"><span>รวมทั้งสิ้น</span><span>${escapeHtml(totalText)}</span></div>
+  <div class="cert">
+    ข้าพเจ้า <span class="fillline" style="min-width:13em">${escapeHtml(f.certName || '')}</span> (ผู้เบิกจ่าย) ตำแหน่ง <span class="fillline" style="min-width:10em">${escapeHtml(f.certPosition || '')}</span><br>
+    ขอรับรองว่า รายจ่ายข้างต้นนี้ไม่อาจเรียกเก็บใบเสร็จรับเงินจากผู้รับได้ และข้าพเจ้าได้จ่ายไปในงาน<br>
+    ของทาง บริษัท/ห้างหุ้นส่วนจำกัด <span class="fillline" style="min-width:11.5em">${escapeHtml(f.certCompany || '')}</span>
+    โดยตั้งแต่วันที่ <span class="fillline" style="min-width:7em">${escapeHtml(f.certFrom || '')}</span> ถึงวันที่ <span class="fillline" style="min-width:7em">${escapeHtml(f.certTo || '')}</span>
+  </div>
+  <div class="sign">
+    <div class="sign-row"><div class="sigline"></div>ลงชื่อ <span class="fillline" style="min-width:16em">${escapeHtml(f.signPayer || '')}</span> (ผู้เบิกจ่าย)</div>
+    <div class="sign-row"><div class="sigline"></div>ลงชื่อ <span class="fillline" style="min-width:16em">${escapeHtml(f.signApprover || '')}</span> (ผู้อนุมัติ)</div>
+  </div>
+</main>
+<script>
+  // Auto-open the native print sheet when browsers allow it. The visible button
+  // remains as a reliable fallback for iOS/PWA where automatic print can be blocked.
+  window.addEventListener('load', function(){
+    setTimeout(function(){ try{ window.print(); }catch(e){} }, 250);
+  });
+<\/script>
+</body></html>`;
+}
+function openPrintablePage(){
+  // Open synchronously from the user's tap; this is important on iOS popup rules.
+  const printWindow = window.open('', '_blank');
+  if(!printWindow) return false;
+  try{
+    printWindow.document.open();
+    printWindow.document.write(buildPrintDocument());
+    printWindow.document.close();
+    return true;
+  }catch(e){
+    try{ printWindow.close(); }catch(_e){}
+    return false;
+  }
+}
 function doPrint(){
   const issues = validateBeforePrint();
   if(issues.length > 0){
     const proceed = confirm('ตรวจพบข้อมูลที่อาจไม่ครบ:\n\n' + issues.join('\n') + '\n\nต้องการพิมพ์ต่อหรือไม่?');
     if(!proceed) return;
   }
+  saveDraft();
   saveToHistory();
-  // best-effort: blank the title in case the browser prints it in the header;
-  // this cannot remove the browser's own URL/date/page-number footer, which
-  // is controlled entirely by the browser/app doing the printing, not the page.
+  closeAllPopups();
+  closeDrawer();
+  toggleFab(false);
+
+  // Use a dedicated static print page. This avoids the common iPhone/PWA problem
+  // where window.print() on the installed web app silently does nothing.
+  if(openPrintablePage()) return;
+
+  // Last-resort fallback when the browser blocks popups.
+  trimEmptyRowsForPrint();
   const originalTitle = document.title;
   document.title = ' ';
-  window.print();
-  setTimeout(() => { document.title = originalTitle; }, 500);
+  try{ window.print(); }
+  finally{
+    setTimeout(() => {
+      document.title = originalTitle;
+      tbody.querySelectorAll('tr').forEach(tr => tr.classList.remove('print-hide-row'));
+    }, 700);
+  }
 }
 
 /* ---------- History (saved locally on this device) ---------- */
