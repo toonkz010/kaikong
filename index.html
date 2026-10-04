@@ -30,7 +30,7 @@
     font-family:'Sarabun', sans-serif;
     background:#eef0f3;
     color:var(--ink);
-    padding-bottom:40px;
+    padding-bottom:110px;
   }
 
   /* ---------- Top bar ---------- */
@@ -79,6 +79,29 @@
   .fab-main:active{ transform:scale(0.94); }
   .fab-stack.open .fab-main:active{ transform:rotate(45deg) scale(0.94); }
   @media print{ .fab-stack{ display:none !important; } }
+
+  /* ---------- Bottom share / print action ---------- */
+  .bottom-action-wrap{
+    position:fixed; left:0; right:0; bottom:0; z-index:34;
+    padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+    background:rgba(255,255,255,.96);
+    border-top:1px solid var(--border);
+    box-shadow:0 -4px 18px rgba(0,0,0,.10);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+  }
+  .bottom-action{
+    width:100%; max-width:640px; margin:0 auto; display:flex;
+    align-items:center; justify-content:center; gap:8px;
+    min-height:56px; border:none; border-radius:16px;
+    background:var(--accent); color:#fff; font-family:inherit;
+    font-size:17px; font-weight:700; cursor:pointer;
+    box-shadow:0 4px 14px rgba(47,75,140,.28);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .bottom-action:active{ transform:scale(.985); }
+  .bottom-action small{ font-size:12px; font-weight:500; opacity:.9; }
+  @media print{ .bottom-action-wrap{ display:none !important; } }
 
   /* ---------- Quick popups (items / dates / amounts) ---------- */
   .popup-backdrop{
@@ -347,7 +370,7 @@
 <header class="topbar">
   <div class="topbar-inner">
     <span class="topbar-title">ใบรับรองแทนใบเสร็จรับเงิน</span>
-    <button class="menu-btn" type="button" onclick="doPrint()">🖨️ พิมพ์</button>
+    <button class="menu-btn" type="button" onclick="openDrawer()">☰ เมนู</button>
   </div>
 </header>
 
@@ -355,9 +378,13 @@
   <button class="fab-item" onclick="openItemPopup()">📦 รายการสินค้า</button>
   <button class="fab-item" onclick="openDatePopup()">📅 วันที่</button>
   <button class="fab-item" onclick="openAmountPopup()">💰 จำนวนเงิน</button>
-  <button class="fab-item" onclick="doPrint()">🖨️ พิมพ์</button>
+  <button class="fab-item" onclick="shareForm()">📤 แชร์ / พิมพ์</button>
   <button class="fab-item" onclick="openDrawer(); toggleFab(false);">☰ เมนู</button>
   <button class="fab-main" id="fabMain" onclick="toggleFab()">+</button>
+</div>
+
+<div class="bottom-action-wrap">
+  <button class="bottom-action" type="button" onclick="shareForm()">📤 แชร์ / เลือกพิมพ์ <small>กดแล้วจะเปิดเมนูแชร์ของ iPhone</small></button>
 </div>
 
 <div class="popup-backdrop" id="popupBackdrop" onclick="closeAllPopups()"></div>
@@ -383,7 +410,7 @@
     <button class="chip-btn" onclick="quickAdd('ปลาแห้ง')">ปลาแห้ง</button>
     <button class="chip-btn" onclick="quickAdd('ปลาทู')">ปลาทู</button>
   </div>
-  <p class="panel-label">พิมพ์รายการเอง</p>
+  <p class="panel-label">แชร์เอกสาร</p>
   <div class="custom-add">
     <input type="text" id="customItem" placeholder="ชื่อรายการ..." onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAddCustom();}">
     <button class="chip-btn" onclick="quickAddCustom()">เพิ่ม</button>
@@ -420,12 +447,12 @@
     <span>💰 ใส่จำนวนเงิน</span>
     <button class="quickpopup-close" onclick="closeAllPopups()">✕</button>
   </div>
-  <p class="panel-label">พิมพ์จำนวนเงิน</p>
+  <p class="panel-label">จำนวนเงิน</p>
   <div class="custom-add">
     <input type="number" step="0.01" id="customAmount" placeholder="ใส่จำนวนเงิน..." oninput="previewCustomAmount()" onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAmountCustom();}">
     <button class="chip-btn" onclick="quickAmountCustom()">ใส่</button>
   </div>
-  <div class="preview-line" id="amountPreview" style="margin-bottom:0;">พิมพ์จำนวนเงิน จะโชว์ตัวอย่างยอดเป็นตัวอักษรตรงนี้</div>
+  <div class="preview-line" id="amountPreview" style="margin-bottom:0;">จำนวนเงิน จะโชว์ตัวอย่างยอดเป็นตัวอักษรตรงนี้</div>
 </div>
 
 <div class="backdrop" id="backdrop" onclick="closeDrawer()"></div>
@@ -461,7 +488,7 @@
 
     <div class="divider"></div>
     <button class="wide-btn danger" onclick="clearForm()">ล้างข้อมูลทั้งหมด</button>
-    <button class="wide-btn primary" onclick="doPrint()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+    <button class="wide-btn primary" onclick="shareForm()">📤 แชร์ / เลือกพิมพ์</button>
   </div>
 </aside>
 
@@ -838,7 +865,7 @@ function previewCustomAmount(){
   const preview = document.getElementById('amountPreview');
   preview.classList.remove('ok');
   if(isNaN(v) || v <= 0){
-    preview.textContent = 'พิมพ์หรือแตะปุ่มลัด จะโชว์ตัวอย่างยอดเป็นตัวอักษรตรงนี้';
+    preview.textContent = 'แตะปุ่มลัดหรือกรอกจำนวนเงิน เพื่อดูตัวอย่างยอดเป็นตัวอักษร';
     return;
   }
   const formatted = v.toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -995,8 +1022,8 @@ function duplicateLastRow(){
   saveDraft();
 }
 
-/* ---------- Validate + print ---------- */
-function validateBeforePrint(){
+/* ---------- Validate + share / print ---------- */
+function validateBeforeShare(){
   const issues = [];
   Array.from(tbody.querySelectorAll('tr')).forEach((tr, idx)=>{
     const desc = tr.querySelector('td.desc input').value.trim();
@@ -1008,19 +1035,99 @@ function validateBeforePrint(){
   if(payer && payer.value.trim() === '') issues.push('ยังไม่ได้กรอกชื่อในช่องลงชื่อผู้เบิกจ่าย');
   return issues;
 }
-function doPrint(){
-  const issues = validateBeforePrint();
-  if(issues.length > 0){
-    const proceed = confirm('ตรวจพบข้อมูลที่อาจไม่ครบ:\n\n' + issues.join('\n') + '\n\nต้องการพิมพ์ต่อหรือไม่?');
-    if(!proceed) return;
-  }
 
-  // iOS 27 currently does not start the native print flow from a Home Screen
-  // PWA running in standalone mode. Printing works in the regular Safari view.
-  // Detect that mode early and give a clear instruction instead of failing silently.
-  if(isStandaloneIOS()){
-    alert('การพิมพ์บน iPhone จะไม่ทำงานเมื่อเปิดเว็บจากไอคอนบนหน้าจอหลักในโหมดแอป\n\nกรุณาเปิดเว็บไซต์นี้ด้วย Safari แล้วกด “🖨️ พิมพ์” อีกครั้ง\n\nระบบได้ออกแบบให้หน้าเว็บเปิดใน Safari เพื่อรองรับ AirPrint โดยตรง');
-    return;
+function htmlEscape(value){
+  return String(value ?? '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
+function buildShareDocument(){
+  const source = document.querySelector('.sheet');
+  if(!source) throw new Error('ไม่พบแบบฟอร์ม');
+  const clone = source.cloneNode(true);
+
+  // cloneNode() copies the HTML value attributes, not necessarily the live values
+  // currently typed by the user. Copy the live values by control order first.
+  const sourceControls = Array.from(source.querySelectorAll('input, textarea, select'));
+  const cloneControls = Array.from(clone.querySelectorAll('input, textarea, select'));
+  cloneControls.forEach((el, index) => {
+    const src = sourceControls[index];
+    if(!src) return;
+    if(el.tagName === 'SELECT') {
+      el.selectedIndex = src.selectedIndex;
+    } else {
+      el.value = src.value;
+    }
+  });
+
+  // Remove management controls from the shared document.
+  clone.querySelectorAll('.manage-col, .manage-cell, .row-manage-btn').forEach(el => el.remove());
+
+  // Remove unused completely blank rows, but keep up to two blank rows as writing space.
+  const rowNodes = Array.from(clone.querySelectorAll('#rows > tr'));
+  let lastFilled = -1;
+  rowNodes.forEach((tr, idx) => {
+    const vals = Array.from(tr.querySelectorAll('input')).map(i => i.value.trim());
+    if(vals.some(Boolean)) lastFilled = idx;
+  });
+  const keepUntil = Math.min(rowNodes.length - 1, lastFilled + 2);
+  rowNodes.forEach((tr, idx) => { if(idx > keepUntil) tr.remove(); });
+
+  // Convert live input values into plain text so the shared file contains the current form state.
+  clone.querySelectorAll('input, textarea, select').forEach(el => {
+    const value = el.tagName === 'SELECT'
+      ? (el.options[el.selectedIndex]?.text || '')
+      : (el.value || '');
+    const span = document.createElement('span');
+    span.className = 'input-as-text ' + (el.className || '');
+    span.setAttribute('style', el.getAttribute('style') || '');
+    span.textContent = value;
+    el.replaceWith(span);
+  });
+
+  return `<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ใบรับรองแทนใบเสร็จรับเงิน</title>
+<style>
+@page{size:A4 portrait;margin:10mm}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#fff;color:#1c2a4a}
+body{font-family:Tahoma,"Noto Sans Thai","Arial Unicode MS",Arial,sans-serif;font-size:12px}
+.sheet{width:100%;max-width:190mm;margin:0 auto;padding:6mm 8mm}
+.header{text-align:center}.h-title{font-size:18px;font-weight:700;margin:0 0 8px}
+.h-shop-input{display:block;width:100%;text-align:center;font-size:16px;font-weight:700;margin:0 auto 6px}
+.h-line{margin:3px 0;line-height:1.7}.h-line .input-as-text{display:inline-block;min-width:20px}
+.buyer-row{display:flex;align-items:flex-end;gap:8px;margin:8px 0 10px;border-bottom:1px solid #5b6b95;padding-bottom:4px}
+.buyer-row .input-as-text{flex:1}
+.table-wrap{width:100%}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th,td{border:1px solid #5b6b95}th{font-weight:700;text-align:center;padding:6px 3px;font-size:11px}
+td{height:30px;vertical-align:middle}.input-as-text{display:inline-block;vertical-align:middle;white-space:pre-wrap;overflow-wrap:anywhere}
+td .input-as-text{width:100%;height:100%;padding:4px 5px;text-align:center}
+td.desc .input-as-text{text-align:left}td.amount .input-as-text{text-align:right;padding-right:8px}
+col.date{width:16%}col.desc{width:44%}col.amount{width:20%}col.remark{width:20%}
+.bahttext-row{display:flex;justify-content:center;margin-top:10px}.bahttext-box{font-weight:700;border:1px dashed #5b6b95;padding:7px 14px;text-align:center;min-width:70%}
+.total-row{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:8px}.total-row .lbl,.total-box{font-weight:700}.total-box{border:1px solid #5b6b95;padding:5px 10px;min-width:100px;text-align:right}
+.cert{margin-top:15px;line-height:1.9}.sign-block{margin-top:20px}.sign-slot{margin-bottom:18px}.sign-space{height:30px;border-bottom:1px solid #5b6b95;margin-bottom:6px}.sign-slot .input-as-text{border-bottom:1px dotted #5b6b95}
+.share-meta{display:none}
+@media print{.sheet{max-width:none;padding:0}.share-meta{display:none}}
+</style>
+</head>
+<body><div class="sheet-wrap">${clone.outerHTML}</div></body></html>`;
+}
+
+async function shareForm(){
+  const issues = validateBeforeShare();
+  if(issues.length > 0){
+    const proceed = confirm('ตรวจพบข้อมูลที่อาจไม่ครบ:\n\n' + issues.join('\n') + '\n\nต้องการแชร์ต่อหรือไม่?');
+    if(!proceed) return;
   }
 
   saveDraft();
@@ -1029,25 +1136,50 @@ function doPrint(){
   closeDrawer();
   toggleFab(false);
 
-  trimEmptyRowsForPrint();
-  const originalTitle = document.title;
-  document.title = 'ใบรับรองแทนใบเสร็จรับเงิน';
   try{
-    window.print();
-  }catch(e){
-    // Older WebKit builds have occasionally behaved better with execCommand('print').
-    try{ document.execCommand('print'); }catch(_e){}
-  }finally{
-    setTimeout(() => {
-      document.title = originalTitle;
-      tbody.querySelectorAll('tr').forEach(tr => tr.classList.remove('print-hide-row'));
-    }, 800);
+    const html = buildShareDocument();
+    const file = new File([html], 'ใบรับรองแทนใบเสร็จรับเงิน.html', {type:'text/html'});
+
+    // Preferred path: iPhone/iPad Share Sheet. A shared file can be previewed
+    // and the user can choose Print, Save to Files, LINE, AirDrop, etc.
+    if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+      await navigator.share({
+        title:'ใบรับรองแทนใบเสร็จรับเงิน',
+        text:'เอกสารใบรับรองแทนใบเสร็จรับเงิน',
+        files:[file]
+      });
+      return;
+    }
+
+    // Fallback for browsers without file-sharing support.
+    if(navigator.share){
+      await navigator.share({
+        title:'ใบรับรองแทนใบเสร็จรับเงิน',
+        text:'เอกสารใบรับรองแทนใบเสร็จรับเงิน\n\nกรุณาเปิดเมนูแชร์ แล้วเลือก พิมพ์ หากมีตัวเลือกนี้'
+      });
+      return;
+    }
+
+    // Final fallback: download an HTML file that can be opened and printed.
+    const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ใบรับรองแทนใบเสร็จรับเงิน.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 3000);
+    alert('สร้างไฟล์เอกสารให้แล้ว กรุณาเปิดไฟล์ แล้วเลือก “พิมพ์” จากเมนูแชร์');
+  }catch(err){
+    if(err && err.name === 'AbortError') return;
+    console.error(err);
+    alert('เปิดเมนูแชร์ไม่สำเร็จ กรุณาลองกดปุ่ม “แชร์ / เลือกพิมพ์” อีกครั้ง');
   }
 }
-function isStandaloneIOS(){
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-    (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches);
-}
+
+// Keep legacy calls working if any older cached HTML still invokes doPrint().
+function doPrint(){ shareForm(); }
 
 /* ---------- History (saved locally on this device) ---------- */
 const HISTORY_KEY = 'baipan_history_v1';
