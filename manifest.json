@@ -4,7 +4,7 @@
   "description": "ฟอร์มกรอกใบรับรองแทนใบเสร็จรับเงิน ร้านแอลเอสพาณิชย์",
   "start_url": "./index.html",
   "scope": "./",
-  "display": "browser",
+  "display": "standalone",
   "orientation": "portrait",
   "background_color": "#eef0f3",
   "theme_color": "#1c2a4a",

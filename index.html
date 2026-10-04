@@ -9,6 +9,10 @@
 <meta name="theme-color" content="#1c2a4a">
 <link rel="icon" href="icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ใบรับรองแทนใบเสร็จ">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -30,7 +34,7 @@
     font-family:'Sarabun', sans-serif;
     background:#eef0f3;
     color:var(--ink);
-    padding-bottom:110px;
+    padding-bottom:40px;
   }
 
   /* ---------- Top bar ---------- */
@@ -78,30 +82,23 @@
   .fab-stack.open .fab-main{ transform:rotate(45deg); background:var(--accent-dark); }
   .fab-main:active{ transform:scale(0.94); }
   .fab-stack.open .fab-main:active{ transform:rotate(45deg) scale(0.94); }
-  @media print{ .fab-stack{ display:none !important; } }
+  @media print{ .fab-stack, .pdf-fab{ display:none !important; } }
 
-  /* ---------- Bottom share / print action ---------- */
-  .bottom-action-wrap{
-    position:fixed; left:0; right:0; bottom:0; z-index:34;
-    padding:8px 12px calc(8px + env(safe-area-inset-bottom));
-    background:rgba(255,255,255,.96);
-    border-top:1px solid var(--border);
-    box-shadow:0 -4px 18px rgba(0,0,0,.10);
-    backdrop-filter:blur(10px);
-    -webkit-backdrop-filter:blur(10px);
-  }
-  .bottom-action{
-    width:100%; max-width:640px; margin:0 auto; display:flex;
-    align-items:center; justify-content:center; gap:8px;
-    min-height:56px; border:none; border-radius:16px;
-    background:var(--accent); color:#fff; font-family:inherit;
-    font-size:17px; font-weight:700; cursor:pointer;
-    box-shadow:0 4px 14px rgba(47,75,140,.28);
+  /* ---------- Always-visible mobile PDF/share button ---------- */
+  .pdf-fab{
+    position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); z-index:38;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    min-height:56px; padding:10px 18px; border:1.5px solid var(--accent);
+    border-radius:16px; background:var(--accent); color:#fff;
+    font-family:inherit; font-size:16px; font-weight:700; cursor:pointer;
+    box-shadow:0 6px 20px rgba(0,0,0,.24);
     -webkit-tap-highlight-color:transparent;
   }
-  .bottom-action:active{ transform:scale(.985); }
-  .bottom-action small{ font-size:12px; font-weight:500; opacity:.9; }
-  @media print{ .bottom-action-wrap{ display:none !important; } }
+  .pdf-fab:active{ transform:scale(.98); }
+  body{ padding-bottom:92px; }
+  @media (min-width:700px){
+    .pdf-fab{ left:auto; right:18px; width:280px; }
+  }
 
   /* ---------- Quick popups (items / dates / amounts) ---------- */
   .popup-backdrop{
@@ -370,7 +367,6 @@
 <header class="topbar">
   <div class="topbar-inner">
     <span class="topbar-title">ใบรับรองแทนใบเสร็จรับเงิน</span>
-    <button class="menu-btn" type="button" onclick="openDrawer()">☰ เมนู</button>
   </div>
 </header>
 
@@ -378,14 +374,11 @@
   <button class="fab-item" onclick="openItemPopup()">📦 รายการสินค้า</button>
   <button class="fab-item" onclick="openDatePopup()">📅 วันที่</button>
   <button class="fab-item" onclick="openAmountPopup()">💰 จำนวนเงิน</button>
-  <button class="fab-item" onclick="shareForm()">📤 แชร์ / พิมพ์</button>
-  <button class="fab-item" onclick="openDrawer(); toggleFab(false);">☰ เมนู</button>
+    <button class="fab-item" onclick="openDrawer(); toggleFab(false);">☰ เมนู</button>
   <button class="fab-main" id="fabMain" onclick="toggleFab()">+</button>
 </div>
 
-<div class="bottom-action-wrap">
-  <button class="bottom-action" type="button" onclick="shareForm()">📤 แชร์ / เลือกพิมพ์ <small>กดแล้วจะเปิดเมนูแชร์ของ iPhone</small></button>
-</div>
+<button class="pdf-fab" type="button" id="pdfFab" onclick="exportPDF()">📄 สร้าง PDF / แชร์ เพื่อพิมพ์</button>
 
 <div class="popup-backdrop" id="popupBackdrop" onclick="closeAllPopups()"></div>
 
@@ -410,7 +403,7 @@
     <button class="chip-btn" onclick="quickAdd('ปลาแห้ง')">ปลาแห้ง</button>
     <button class="chip-btn" onclick="quickAdd('ปลาทู')">ปลาทู</button>
   </div>
-  <p class="panel-label">แชร์เอกสาร</p>
+  <p class="panel-label">พิมพ์รายการเอง</p>
   <div class="custom-add">
     <input type="text" id="customItem" placeholder="ชื่อรายการ..." onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAddCustom();}">
     <button class="chip-btn" onclick="quickAddCustom()">เพิ่ม</button>
@@ -447,12 +440,12 @@
     <span>💰 ใส่จำนวนเงิน</span>
     <button class="quickpopup-close" onclick="closeAllPopups()">✕</button>
   </div>
-  <p class="panel-label">จำนวนเงิน</p>
+  <p class="panel-label">พิมพ์จำนวนเงิน</p>
   <div class="custom-add">
     <input type="number" step="0.01" id="customAmount" placeholder="ใส่จำนวนเงิน..." oninput="previewCustomAmount()" onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAmountCustom();}">
     <button class="chip-btn" onclick="quickAmountCustom()">ใส่</button>
   </div>
-  <div class="preview-line" id="amountPreview" style="margin-bottom:0;">จำนวนเงิน จะโชว์ตัวอย่างยอดเป็นตัวอักษรตรงนี้</div>
+  <div class="preview-line" id="amountPreview" style="margin-bottom:0;">พิมพ์จำนวนเงิน จะโชว์ตัวอย่างยอดเป็นตัวอักษรตรงนี้</div>
 </div>
 
 <div class="backdrop" id="backdrop" onclick="closeDrawer()"></div>
@@ -488,7 +481,7 @@
 
     <div class="divider"></div>
     <button class="wide-btn danger" onclick="clearForm()">ล้างข้อมูลทั้งหมด</button>
-    <button class="wide-btn primary" onclick="shareForm()">📤 แชร์ / เลือกพิมพ์</button>
+    <button class="wide-btn primary" onclick="exportPDF()">📄 สร้าง PDF / แชร์เพื่อพิมพ์</button>
   </div>
 </aside>
 
@@ -865,7 +858,7 @@ function previewCustomAmount(){
   const preview = document.getElementById('amountPreview');
   preview.classList.remove('ok');
   if(isNaN(v) || v <= 0){
-    preview.textContent = 'แตะปุ่มลัดหรือกรอกจำนวนเงิน เพื่อดูตัวอย่างยอดเป็นตัวอักษร';
+    preview.textContent = 'พิมพ์หรือแตะปุ่มลัด จะโชว์ตัวอย่างยอดเป็นตัวอักษรตรงนี้';
     return;
   }
   const formatted = v.toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -1022,8 +1015,8 @@ function duplicateLastRow(){
   saveDraft();
 }
 
-/* ---------- Validate + share / print ---------- */
-function validateBeforeShare(){
+/* ---------- Validate + PDF export/share ---------- */
+function validateBeforePrint(){
   const issues = [];
   Array.from(tbody.querySelectorAll('tr')).forEach((tr, idx)=>{
     const desc = tr.querySelector('td.desc input').value.trim();
@@ -1036,150 +1029,235 @@ function validateBeforeShare(){
   return issues;
 }
 
-function htmlEscape(value){
-  return String(value ?? '')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&#039;');
+function formatPdfFileName(){
+  const d = new Date();
+  const y = d.getFullYear() + 543;
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `ใบรับรองแทนใบเสร็จ-${y}-${m}-${day}.pdf`;
 }
 
-function buildShareDocument(){
-  const source = document.querySelector('.sheet');
-  if(!source) throw new Error('ไม่พบแบบฟอร์ม');
-  const clone = source.cloneNode(true);
+function pdfDataUrlToBytes(dataUrl){
+  const base64 = dataUrl.split(',')[1];
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
 
-  // cloneNode() copies the HTML value attributes, not necessarily the live values
-  // currently typed by the user. Copy the live values by control order first.
-  const sourceControls = Array.from(source.querySelectorAll('input, textarea, select'));
-  const cloneControls = Array.from(clone.querySelectorAll('input, textarea, select'));
-  cloneControls.forEach((el, index) => {
-    const src = sourceControls[index];
-    if(!src) return;
-    if(el.tagName === 'SELECT') {
-      el.selectedIndex = src.selectedIndex;
-    } else {
-      el.value = src.value;
+function concatUint8Arrays(parts){
+  const total = parts.reduce((n,p)=>n+p.length,0);
+  const out = new Uint8Array(total);
+  let offset=0;
+  for(const p of parts){ out.set(p, offset); offset += p.length; }
+  return out;
+}
+
+function makeImagePdf(jpegs, widthPx, heightPx){
+  const pageW = 595.28;
+  const pageH = 841.89;
+  const enc = new TextEncoder();
+  const parts = [enc.encode('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n')];
+  const offsets = [0];
+  let offset = parts[0].length;
+  const objectBytes = (objNum, bodyBytes) => {
+    const head = enc.encode(`${objNum} 0 obj\n`);
+    const tail = enc.encode('\nendobj\n');
+    const arr = concatUint8Arrays([head, bodyBytes, tail]);
+    offsets[objNum] = offset;
+    parts.push(arr);
+    offset += arr.length;
+  };
+  const str = x => enc.encode(x);
+
+  const pageCount = jpegs.length;
+  const pagesObj = 2;
+  const firstPageObj = 3;
+  const firstContentObj = firstPageObj + pageCount;
+  const firstImageObj = firstContentObj + pageCount;
+
+  objectBytes(1, str(`<< /Type /Catalog /Pages ${pagesObj} 0 R >>`));
+  const kids = Array.from({length: pageCount}, (_,i)=>`${firstPageObj+i} 0 R`).join(' ');
+  objectBytes(pagesObj, str(`<< /Type /Pages /Kids [${kids}] /Count ${pageCount} >>`));
+
+  jpegs.forEach((jpegBytes,i)=>{
+    const pageObj = firstPageObj+i;
+    const contentObj = firstContentObj+i;
+    const imageObj = firstImageObj+i;
+    const content = str(`q\n${pageW} 0 0 ${pageH} 0 0 cm\n/Im${i} Do\nQ\n`);
+    objectBytes(contentObj, concatUint8Arrays([str(`<< /Length ${content.length} >>\nstream\n`), content, str('endstream')]));
+    objectBytes(pageObj, str(`<< /Type /Page /Parent ${pagesObj} 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /XObject << /Im${i} ${imageObj} 0 R >> >> /Contents ${contentObj} 0 R >>`));
+    const imgHead = str(`<< /Type /XObject /Subtype /Image /Width ${widthPx} /Height ${heightPx} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`);
+    objectBytes(imageObj, concatUint8Arrays([imgHead, jpegBytes, str('\nendstream')]));
+  });
+
+  const xrefOffset = offset;
+  const xref = [`xref`, `0 ${firstImageObj + pageCount}`, `0000000000 65535 f `];
+  for(let i=1;i<firstImageObj+pageCount;i++) xref.push(String(offsets[i]).padStart(10,'0') + ' 00000 n ');
+  const trailer = `trailer\n<< /Size ${firstImageObj + pageCount} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  parts.push(str(xref.join('\n')+'\n'+trailer));
+  return new Blob([concatUint8Arrays(parts)], {type:'application/pdf'});
+}
+
+function fitText(ctx, value, maxWidth){
+  let text = String(value ?? '');
+  if(ctx.measureText(text).width <= maxWidth) return text;
+  while(text.length > 1 && ctx.measureText(text + '…').width > maxWidth) text = text.slice(0,-1);
+  return text + '…';
+}
+
+function drawCellText(ctx, value, x, y, width, height, align='center'){
+  const pad = 8;
+  const text = fitText(ctx, value || '', width - pad*2);
+  const tw = ctx.measureText(text).width;
+  let tx = x + pad;
+  if(align === 'center') tx = x + (width-tw)/2;
+  if(align === 'right') tx = x + width - tw - pad;
+  ctx.fillText(text, tx, y + height/2 + 8);
+}
+
+function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight){
+  const words = String(text || '').split('');
+  let line = '';
+  for(const ch of words){
+    const test = line + ch;
+    if(ch === '\n'){
+      ctx.fillText(line, x, y);
+      y += lineHeight;
+      line = '';
+      continue;
     }
-  });
-
-  // Remove management controls from the shared document.
-  clone.querySelectorAll('.manage-col, .manage-cell, .row-manage-btn').forEach(el => el.remove());
-
-  // Remove unused completely blank rows, but keep up to two blank rows as writing space.
-  const rowNodes = Array.from(clone.querySelectorAll('#rows > tr'));
-  let lastFilled = -1;
-  rowNodes.forEach((tr, idx) => {
-    const vals = Array.from(tr.querySelectorAll('input')).map(i => i.value.trim());
-    if(vals.some(Boolean)) lastFilled = idx;
-  });
-  const keepUntil = Math.min(rowNodes.length - 1, lastFilled + 2);
-  rowNodes.forEach((tr, idx) => { if(idx > keepUntil) tr.remove(); });
-
-  // Convert live input values into plain text so the shared file contains the current form state.
-  clone.querySelectorAll('input, textarea, select').forEach(el => {
-    const value = el.tagName === 'SELECT'
-      ? (el.options[el.selectedIndex]?.text || '')
-      : (el.value || '');
-    const span = document.createElement('span');
-    span.className = 'input-as-text ' + (el.className || '');
-    span.setAttribute('style', el.getAttribute('style') || '');
-    span.textContent = value;
-    el.replaceWith(span);
-  });
-
-  return `<!DOCTYPE html>
-<html lang="th">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ใบรับรองแทนใบเสร็จรับเงิน</title>
-<style>
-@page{size:A4 portrait;margin:10mm}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#fff;color:#1c2a4a}
-body{font-family:Tahoma,"Noto Sans Thai","Arial Unicode MS",Arial,sans-serif;font-size:12px}
-.sheet{width:100%;max-width:190mm;margin:0 auto;padding:6mm 8mm}
-.header{text-align:center}.h-title{font-size:18px;font-weight:700;margin:0 0 8px}
-.h-shop-input{display:block;width:100%;text-align:center;font-size:16px;font-weight:700;margin:0 auto 6px}
-.h-line{margin:3px 0;line-height:1.7}.h-line .input-as-text{display:inline-block;min-width:20px}
-.buyer-row{display:flex;align-items:flex-end;gap:8px;margin:8px 0 10px;border-bottom:1px solid #5b6b95;padding-bottom:4px}
-.buyer-row .input-as-text{flex:1}
-.table-wrap{width:100%}
-table{width:100%;border-collapse:collapse;table-layout:fixed}
-th,td{border:1px solid #5b6b95}th{font-weight:700;text-align:center;padding:6px 3px;font-size:11px}
-td{height:30px;vertical-align:middle}.input-as-text{display:inline-block;vertical-align:middle;white-space:pre-wrap;overflow-wrap:anywhere}
-td .input-as-text{width:100%;height:100%;padding:4px 5px;text-align:center}
-td.desc .input-as-text{text-align:left}td.amount .input-as-text{text-align:right;padding-right:8px}
-col.date{width:16%}col.desc{width:44%}col.amount{width:20%}col.remark{width:20%}
-.bahttext-row{display:flex;justify-content:center;margin-top:10px}.bahttext-box{font-weight:700;border:1px dashed #5b6b95;padding:7px 14px;text-align:center;min-width:70%}
-.total-row{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:8px}.total-row .lbl,.total-box{font-weight:700}.total-box{border:1px solid #5b6b95;padding:5px 10px;min-width:100px;text-align:right}
-.cert{margin-top:15px;line-height:1.9}.sign-block{margin-top:20px}.sign-slot{margin-bottom:18px}.sign-space{height:30px;border-bottom:1px solid #5b6b95;margin-bottom:6px}.sign-slot .input-as-text{border-bottom:1px dotted #5b6b95}
-.share-meta{display:none}
-@media print{.sheet{max-width:none;padding:0}.share-meta{display:none}}
-</style>
-</head>
-<body><div class="sheet-wrap">${clone.outerHTML}</div></body></html>`;
+    if(ctx.measureText(test).width > maxWidth && line){
+      ctx.fillText(line, x, y);
+      y += lineHeight;
+      line = ch;
+    } else line = test;
+  }
+  if(line){ ctx.fillText(line, x, y); y += lineHeight; }
+  return y;
 }
 
-async function shareForm(){
-  const issues = validateBeforeShare();
-  if(issues.length > 0){
-    const proceed = confirm('ตรวจพบข้อมูลที่อาจไม่ครบ:\n\n' + issues.join('\n') + '\n\nต้องการแชร์ต่อหรือไม่?');
-    if(!proceed) return;
+function makePdfPage(rows, fields, total, startIndex, endIndex, finalPage, pageNo, pageCount){
+  const W = 1240, H = 1754, M = 54, contentW = W - M*2;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d', {alpha:false});
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = '#1c2a4a'; ctx.strokeStyle = '#5b6b95'; ctx.textBaseline='alphabetic';
+
+  ctx.textAlign='center'; ctx.font='700 34px Sarabun, sans-serif';
+  ctx.fillText('ใบรับรองแทนใบเสร็จรับเงิน', W/2, 62);
+  ctx.font='700 30px Sarabun, sans-serif';
+  ctx.fillText(fields.shopName || '', W/2, 101);
+  ctx.textAlign='left'; ctx.font='20px Sarabun, sans-serif';
+  ctx.fillText(`บ้านเลขที่ ${fields.houseNo || ''} หมู่ที่ ${fields.moo || ''}  ตำบล ${fields.tambon || ''}  อำเภอ ${fields.amphoe || ''}  จังหวัด ${fields.changwat || ''}  ${fields.zipcode || ''}`, M, 132);
+  ctx.fillText(`โทร. ${fields.phone || ''}`, M, 160);
+  ctx.fillText(`เลขประจำตัวผู้เสียภาษีอากร ${fields.taxId || ''}`, M, 188);
+  ctx.fillText(`ผู้ซื้อ/ผู้รับบริการ: ${fields.buyerName || ''}`, M, 225);
+
+  const tableX=M, tableY=250;
+  const cols=[155,500,220,201];
+  const headH=44, rowH=40;
+  ctx.font='700 19px Sarabun, sans-serif'; ctx.textAlign='center';
+  let x=tableX;
+  const headers=['วัน/เดือน/ปี','รายละเอียดรายจ่าย','จำนวนเงิน','หมายเหตุ'];
+  headers.forEach((h,i)=>{
+    ctx.fillStyle='#ffffff'; ctx.fillRect(x,tableY,cols[i],headH);
+    ctx.strokeStyle='#5b6b95'; ctx.strokeRect(x,tableY,cols[i],headH);
+    ctx.fillStyle='#1c2a4a'; ctx.fillText(h,x+cols[i]/2,tableY+29); x+=cols[i];
+  });
+
+  ctx.font='18px Sarabun, sans-serif';
+  rows.forEach((r,idx)=>{
+    const yy=tableY+headH+idx*rowH;
+    let xx=tableX;
+    const vals=[r.date||'',r.desc||'',r.amount ? Number(r.amount).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}) : '',r.remark||''];
+    vals.forEach((v,i)=>{
+      ctx.fillStyle='#ffffff'; ctx.fillRect(xx,yy,cols[i],rowH);
+      ctx.strokeStyle='#5b6b95'; ctx.strokeRect(xx,yy,cols[i],rowH);
+      ctx.fillStyle='#1c2a4a'; drawCellText(ctx,v,xx,yy,cols[i],rowH,i===1?'left':(i===2?'right':'center'));
+      xx+=cols[i];
+    });
+  });
+
+  let y=tableY+headH+rows.length*rowH+24;
+  ctx.font='700 20px Sarabun, sans-serif'; ctx.textAlign='center';
+  ctx.strokeStyle='#5b6b95'; ctx.strokeRect(M+140,y,contentW-280,42);
+  ctx.fillText(total > 0 ? `( ${thaiBahtText(total)} )` : '( - )', W/2, y+29);
+  y+=70;
+  ctx.textAlign='right'; ctx.font='700 20px Sarabun, sans-serif';
+  ctx.fillText(`รวมทั้งสิ้น   ${total.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}`, W-M, y);
+
+  if(finalPage){
+    y+=54;
+    ctx.textAlign='left'; ctx.font='18px Sarabun, sans-serif';
+    let cert = `ข้าพเจ้า ${fields.certName || '________________'} (ผู้เบิกจ่าย) ตำแหน่ง ${fields.certPosition || '________________'}\n`;
+    cert += 'ขอรับรองว่า รายจ่ายข้างต้นนี้ไม่อาจเรียกเก็บใบเสร็จรับเงินจากผู้รับได้ และข้าพเจ้าได้จ่ายไปในงาน\n';
+    cert += `ของทาง บริษัท/ห้างหุ้นส่วนจำกัด ${fields.certCompany || '________________'} โดยตั้งแต่วันที่ ${fields.certFrom || '________'} ถึงวันที่ ${fields.certTo || '________'}`;
+    y=wrapCanvasText(ctx,cert,M,y,contentW,31)+22;
+    const slotW=(contentW-90)/2;
+    ctx.strokeStyle='#5b6b95';
+    const sy=y+45;
+    [0,1].forEach((i)=>{
+      const sx=M+i*(slotW+90);
+      ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx+slotW,sy); ctx.stroke();
+      ctx.fillStyle='#1c2a4a'; ctx.textAlign='center'; ctx.font='18px Sarabun, sans-serif';
+      ctx.fillText(i===0?`ลงชื่อ ${fields.signPayer || '________________'} (ผู้เบิกจ่าย)`:`ลงชื่อ ${fields.signApprover || '________________'} (ผู้อนุมัติ)`, sx+slotW/2, sy+27);
+    });
   }
 
-  saveDraft();
+  ctx.fillStyle='#6b7488'; ctx.textAlign='right'; ctx.font='14px Sarabun, sans-serif';
+  ctx.fillText(`หน้า ${pageNo}/${pageCount}`, W-M, H-22);
+  return canvas;
+}
+
+async function createCertificatePDF(){
+  if(document.fonts && document.fonts.ready){ try{ await document.fonts.ready; }catch(e){} }
+  const fields = getFieldMap();
+  const allRows = getRowsData().filter(r => r.desc.trim() !== '' || r.amount.trim() !== '');
+  const total = allRows.reduce((s,r)=>s+(parseFloat(r.amount)||0),0);
+  const perPage = 18;
+  const pageCount = Math.max(1, Math.ceil(allRows.length / perPage));
+  const canvases=[];
+  for(let i=0;i<pageCount;i++){
+    const start=i*perPage, end=Math.min(allRows.length,start+perPage);
+    canvases.push(makePdfPage(allRows.slice(start,end), fields, total, start, end, i===pageCount-1, i+1, pageCount));
+  }
+  const jpegs = canvases.map(c=>pdfDataUrlToBytes(c.toDataURL('image/jpeg',0.92)));
+  return makeImagePdf(jpegs,1240,1754);
+}
+
+async function exportPDF(){
+  const issues = validateBeforePrint();
+  if(issues.length > 0){
+    const proceed = confirm('ตรวจพบข้อมูลที่อาจไม่ครบ:\n\n' + issues.join('\n') + '\n\nต้องการสร้าง PDF ต่อหรือไม่?');
+    if(!proceed) return;
+  }
   saveToHistory();
-  closeAllPopups();
-  closeDrawer();
-  toggleFab(false);
-
+  const btn = document.getElementById('pdfFab');
+  const oldText = btn ? btn.textContent : '';
+  if(btn){ btn.disabled=true; btn.textContent='⏳ กำลังสร้าง PDF...'; }
   try{
-    const html = buildShareDocument();
-    const file = new File([html], 'ใบรับรองแทนใบเสร็จรับเงิน.html', {type:'text/html'});
-
-    // Preferred path: iPhone/iPad Share Sheet. A shared file can be previewed
-    // and the user can choose Print, Save to Files, LINE, AirDrop, etc.
-    if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-      await navigator.share({
-        title:'ใบรับรองแทนใบเสร็จรับเงิน',
-        text:'เอกสารใบรับรองแทนใบเสร็จรับเงิน',
-        files:[file]
-      });
+    const blob = await createCertificatePDF();
+    const filename = formatPdfFileName();
+    const file = new File([blob], filename, {type:'application/pdf'});
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:'ใบรับรองแทนใบเสร็จรับเงิน', text:'ไฟล์ PDF สำหรับแชร์หรือพิมพ์'});
       return;
     }
-
-    // Fallback for browsers without file-sharing support.
-    if(navigator.share){
-      await navigator.share({
-        title:'ใบรับรองแทนใบเสร็จรับเงิน',
-        text:'เอกสารใบรับรองแทนใบเสร็จรับเงิน\n\nกรุณาเปิดเมนูแชร์ แล้วเลือก พิมพ์ หากมีตัวเลือกนี้'
-      });
-      return;
-    }
-
-    // Final fallback: download an HTML file that can be opened and printed.
-    const blob = new Blob([html], {type:'text/html;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'ใบรับรองแทนใบเสร็จรับเงิน.html';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 3000);
-    alert('สร้างไฟล์เอกสารให้แล้ว กรุณาเปิดไฟล์ แล้วเลือก “พิมพ์” จากเมนูแชร์');
+    a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    alert('สร้าง PDF เรียบร้อยแล้ว ไฟล์ถูกบันทึกลงอุปกรณ์แล้ว กรุณาเปิดไฟล์เพื่อแชร์หรือพิมพ์');
   }catch(err){
     if(err && err.name === 'AbortError') return;
     console.error(err);
-    alert('เปิดเมนูแชร์ไม่สำเร็จ กรุณาลองกดปุ่ม “แชร์ / เลือกพิมพ์” อีกครั้ง');
+    alert('สร้าง PDF ไม่สำเร็จ กรุณาลองอีกครั้ง');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent=oldText; }
   }
 }
-
-// Keep legacy calls working if any older cached HTML still invokes doPrint().
-function doPrint(){ shareForm(); }
 
 /* ---------- History (saved locally on this device) ---------- */
 const HISTORY_KEY = 'baipan_history_v1';
